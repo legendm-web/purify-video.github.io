@@ -227,9 +227,9 @@
     /**
 		 * Extract key from URL and start video player.
      */
-    function purify(key) {
+    function purify(path, params) {
       document.querySelector('.iframe').style.display = 'block';
-      document.querySelector('iframe').setAttribute('src', 'https://www.youtube-nocookie.com/embed/' + key);
+      document.querySelector('iframe').setAttribute('src', 'https://www.youtube-nocookie.com/embed/' + path + '?' + params.toString());
     }
 
     /**
@@ -237,10 +237,32 @@
      */
     function init() {
       setThemeFromPreference();
-      const params = new URLSearchParams(window.location.search.substr(1));
+      const params = new URLSearchParams(window.location.search.substring(1));
       if (params.has('v')) {
-        const match = params.get('v').match(/(http:|https:)?(\/\/)?(www\.)?(youtube.com|youtu.be)\/(watch|embed)?(\?v=|\/)?([\w-]+)/);
-        if (match && match[7]) purify(match[7]);
+        const url = new URL(params.get('v'));
+        const urlParams = new URLSearchParams(url.search.substring(1));
+        // See https://developers.google.com/youtube/player_parameters for supported parameters
+        const outputParams = new URLSearchParams();
+
+        if (urlParams.has('t')) {
+          outputParams.append('start', urlParams.get('t'));
+        }
+
+        if (url.hostname == 'youtube.com' || url.hostname.endsWith('.youtube.com')) {
+          if (urlParams.has('list')) {
+            outputParams.append('listType', 'playlist');
+            outputParams.append('list', urlParams.get('list'));
+          }
+
+          let id = '';
+          if (urlParams.has('v')) {
+            id = urlParams.get('v');
+          }
+          purify(id, outputParams);
+        } else if (url.hostname == 'youtu.be') {
+          const id = url.pathname.substring(1);
+          purify(id, outputParams);
+        }
       }
     }
 
