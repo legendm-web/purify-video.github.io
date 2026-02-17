@@ -4,19 +4,13 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <meta name="description" content="Watch purified YouTube videos with no ads. Just focus." />
-  <link rel="icon" type="image/x-icon" href="/favicon.ico" />
+  <link rel="icon" href="data:,">
   <title>purify video – watch purified YouTube videos with no ads</title>
 
-  <!-- ✅ Google Font: Noto Sans. -->
   <link href="https://fonts.googleapis.com/css2?family=Noto+Sans:wght@400;600&display=swap" rel="stylesheet" />
-
-  <!-- ✅ Google Material Icons: Light Mode & Dark Mode. -->
   <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined" rel="stylesheet" />
 
   <style>
-    /* ===================
-       Colors palette.
-    ====================== */
     :root {
       --bg-light: #f4f4f5;
       --text-light: #1f1f1f;
@@ -27,9 +21,6 @@
       --input-border: #ced4da;
     }
 
-    /* ===================
-       Themes.
-    ====================== */
     [data-theme="dark"] {
       background-color: var(--bg-dark);
       color: var(--text-dark);
@@ -40,35 +31,27 @@
       color: var(--text-light);
     }
 
-    /* ===================
-       Fonts.
-    ====================== */
     * {
       box-sizing: border-box;
-      font-family: 'Noto Sans', 'Segoe UI', Helvetica, Arial, sans-serif;
+      font-family: 'Noto Sans', sans-serif;
     }
 
     body {
       margin: 0;
-      padding: 0;
       transition: background-color 0.3s, color 0.3s;
     }
 
-    /* ===================
-       Layout.
-    ====================== */
     header, footer, section {
-      max-width: 1200px;
+      max-width: 900px;
       margin: auto;
       padding: 1rem;
       text-align: center;
     }
 
     .iframe {
-      max-width: 100%;
-      aspect-ratio: 16 / 9;
-      padding: 1rem;
       display: none;
+      aspect-ratio: 16/9;
+      margin: 2rem auto;
     }
 
     iframe {
@@ -77,260 +60,179 @@
       border: none;
     }
 
-    /* ===================
-       Input and buttons.
-    ====================== */
     input[type="text"] {
       padding: 0.5rem;
       font-size: 1rem;
-      border-radius: 0.25rem;
+      border-radius: 6px;
       border: 1px solid var(--input-border);
-      background-color: var(--input-bg);
-      color: var(--text-light);
+      width: 60%;
+      max-width: 400px;
     }
 
     button {
-      margin-left: 0.5rem;
       padding: 0.5rem 1rem;
       background-color: var(--primary);
       color: white;
       border: none;
-      border-radius: 0.25rem;
+      border-radius: 6px;
       cursor: pointer;
       font-weight: 600;
+      margin-left: 0.5rem;
     }
 
-    a {
-      color: inherit;
-      text-decoration: underline;
+    #search-results {
+      margin-top: 2rem;
+      text-align: left;
     }
 
-    h1 {
-      font-size: 2rem;
-      margin-bottom: 0.5rem;
+    .result {
+      padding: 1rem;
       border-bottom: 1px solid #ccc;
+      cursor: pointer;
     }
 
-    /* ===================
-       Responsive.
-    ====================== */
-    @media (max-width: 600px) {
-      input[type="text"], button {
-        display: block;
-        width: 100%;
-        margin: 0.5rem 0;
-      }
+    .result:hover {
+      background: rgba(0,0,0,0.05);
     }
 
-    /* ==========================
-       Toggle switch with icons.
-    ============================= */
     .theme-toggle {
       position: absolute;
       top: 1rem;
       right: 1rem;
-      display: flex;
-      align-items: center;
     }
 
-    .icon-label {
-      font-family: 'Material Symbols Outlined', Arial, sans-serif;
-      font-size: 24px;
-      margin: 0 0.5rem;
-      line-height: 1;
-      user-select: none;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      width: 24px;
-      height: 24px;
-    }
-
-    .switch {
-      position: relative;
-      display: inline-block;
-      width: 48px;
-      height: 24px;
-    }
-
-    .switch input {
-      opacity: 0;
-      width: 0;
-      height: 0;
-    }
-
-    .slider {
-      position: absolute;
-      cursor: pointer;
-      top: 0;
-      left: 0;
-      right: 0;
-      bottom: 0;
-      background-color: #ccc;
-      border-radius: 24px;
-      transition: 0.4s;
-    }
-
-    .slider:before {
-      position: absolute;
-      content: "";
-      height: 20px;
-      width: 20px;
-      left: 2px;
-      bottom: 2px;
-      background-color: white;
-      border-radius: 50%;
-      transition: 0.4s;
-    }
-
-    input:checked + .slider {
-      background-color: #666;
-    }
-
-    input:checked + .slider:before {
-      transform: translateX(24px);
-    }
-
-    /* Fallback icons. */
-    .fallback-icon {
-      display: none;
-      font-size: 16px;
-    }
-
-    .material-symbols-outlined:empty + .fallback-icon {
-      display: inline;
-    }
-
-    /* ===================
-       Donation box.
-    ====================== */
-    .donation-box {
-      background-color: rgba(255, 255, 255, 0.1);
-      padding: 1rem;
-      margin: 1rem 0;
-      border-radius: 0.5rem;
-    }
-
-    [data-theme="light"] .donation-box {
-      background-color: rgba(0, 0, 0, 0.05);
+    @media (max-width: 600px) {
+      input[type="text"] {
+        width: 100%;
+        margin-bottom: 0.5rem;
+      }
+      button {
+        width: 100%;
+        margin-left: 0;
+      }
     }
   </style>
 
   <script>
-    /**
-     * Set theme based on system.
-     */
+    const INVIDIOUS_INSTANCE = "https://yewtu.be";
+
     function setThemeFromPreference() {
       const saved = localStorage.getItem("theme");
       const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
       const theme = saved || (prefersDark ? "dark" : "light");
       document.documentElement.setAttribute("data-theme", theme);
-      document.getElementById("theme-checkbox").checked = theme === "dark";
     }
 
-    /**
-     * Change the theme and save on localStorage.
-     */
     function toggleTheme() {
-      const isDark = document.getElementById("theme-checkbox").checked;
-      const newTheme = isDark ? "dark" : "light";
+      const current = document.documentElement.getAttribute("data-theme");
+      const newTheme = current === "dark" ? "light" : "dark";
       document.documentElement.setAttribute("data-theme", newTheme);
       localStorage.setItem("theme", newTheme);
     }
 
-    /**
-		 * Extract key from URL and start video player.
-     */
-    function purify(path, params) {
+    function purifyVideo(videoId) {
       document.querySelector('.iframe').style.display = 'block';
-      document.querySelector('iframe').setAttribute('src', 'https://www.youtube-nocookie.com/embed/' + path + '?' + params.toString());
+      document.querySelector('iframe').src =
+        "https://www.youtube-nocookie.com/embed/" + videoId;
+      window.scrollTo({ top: 0, behavior: "smooth" });
     }
 
-    /**
-     * Autostart on onload event.
-     */
-    function init() {
-      setThemeFromPreference();
-      const params = new URLSearchParams(window.location.search.substring(1));
-      if (params.has('v')) {
-        const url = new URL(params.get('v'));
-        const urlParams = new URLSearchParams(url.search.substring(1));
-        // See https://developers.google.com/youtube/player_parameters for supported parameters
-        const outputParams = new URLSearchParams();
+    async function searchVideos(query) {
+      const container = document.getElementById("search-results");
+      container.innerHTML = "Searching...";
 
-        if (urlParams.has('t')) {
-          outputParams.append('start', urlParams.get('t'));
-        }
+      try {
+        const res = await fetch(
+          INVIDIOUS_INSTANCE + "/api/v1/search?q=" +
+          encodeURIComponent(query) + "&type=video"
+        );
+        const data = await res.json();
 
-        if (url.hostname == 'youtube.com' || url.hostname.endsWith('.youtube.com')) {
-          if (urlParams.has('list')) {
-            outputParams.append('listType', 'playlist');
-            outputParams.append('list', urlParams.get('list'));
-          }
+        container.innerHTML = "";
 
-          let id = '';
-          if (urlParams.has('v')) {
-            id = urlParams.get('v');
-          }
-          purify(id, outputParams);
-        } else if (url.hostname == 'youtu.be') {
-          const id = url.pathname.substring(1);
-          purify(id, outputParams);
-        }
+        data.slice(0, 10).forEach(video => {
+          const div = document.createElement("div");
+          div.className = "result";
+          div.innerHTML = `
+            <strong>${video.title}</strong><br>
+            <small>${video.author}</small>
+          `;
+          div.onclick = () => purifyVideo(video.videoId);
+          container.appendChild(div);
+        });
+
+      } catch (err) {
+        container.innerHTML = "Search failed. Try again.";
+        console.error(err);
       }
     }
 
-    window.onload = init;
+    function handleSearch(e) {
+      e.preventDefault();
+      const query = document.getElementById("search-input").value.trim();
+      if (query) searchVideos(query);
+    }
+
+    function handlePurify(e) {
+      e.preventDefault();
+      const urlInput = document.getElementById("url-input").value.trim();
+      if (!urlInput) return;
+
+      try {
+        const url = new URL(urlInput);
+        let videoId = "";
+
+        if (url.hostname.includes("youtube.com")) {
+          videoId = url.searchParams.get("v");
+        } else if (url.hostname.includes("youtu.be")) {
+          videoId = url.pathname.substring(1);
+        }
+
+        if (videoId) purifyVideo(videoId);
+
+      } catch {
+        alert("Invalid YouTube URL");
+      }
+    }
+
+    window.onload = setThemeFromPreference;
   </script>
 </head>
 
 <body>
-  <!-- 🌗 Toggle Switch for Dark/Light mode with fallback icons. -->
+
   <div class="theme-toggle">
-    <span class="icon-label">
-      <span class="material-symbols-outlined">light_mode</span>
-      <span class="fallback-icon">☀️</span>
-    </span>
-    <label class="switch">
-      <input type="checkbox" id="theme-checkbox" onchange="toggleTheme()" />
-      <span class="slider"></span>
-    </label>
-    <span class="icon-label">
-      <span class="material-symbols-outlined">dark_mode</span>
-      <span class="fallback-icon">🌙</span>
-    </span>
+    <button onclick="toggleTheme()">Toggle Theme</button>
   </div>
 
   <header>
     <h1>purify video</h1>
-    <h2>Watch purified YouTube videos with no ads. Just focus</h2>
-    <form method="get" action="">
-      <input type="text" name="v" placeholder="Enter YouTube URL" />
+    <h2>Watch purified YouTube videos with no ads. Just focus.</h2>
+
+    <form onsubmit="handlePurify(event)">
+      <input type="text" id="url-input" placeholder="Paste YouTube URL" />
       <button type="submit">Purify</button>
+    </form>
+
+    <hr style="margin:2rem 0;">
+
+    <h2>Or search intentionally</h2>
+
+    <form onsubmit="handleSearch(event)">
+      <input type="text" id="search-input" placeholder="Search YouTube videos..." />
+      <button type="submit">Search</button>
     </form>
   </header>
 
   <section class="iframe">
-    <iframe src="" allow="autoplay; encrypted-media" allowfullscreen></iframe>
+    <iframe allow="autoplay; encrypted-media" allowfullscreen></iframe>
   </section>
 
-  <section>
-    <h1>Are you looking for a way to enhance your YouTube viewing experience?</h1>
-    <p>This app offers a clean and minimalistic interface for a distraction-free experience.</p>
-    <p>Teachers, students, parents, and organizers can use our app to remove ads, comments, and distracting sidebar videos.</p>
-    <p>Ensure your viewers see only the content you want them to see—nothing more, nothing less.</p>
-  </section>
+  <section id="search-results"></section>
 
   <footer>
-    <div class="donation-box">
-      <p>If you enjoy this service, you can support it with a <a href="https://buymeacoffee.com/purifyvideo" target="_blank">small donation</a> ☕</p>
-    </div>
-    <p>YouTube is the source of all content</p>
-    <p><a href="https://github.com/purify-video" target="_blank">Made with 🖤 in Wrocław</a></p>
-    <p>This website <strong>does not store</strong> any data such as cookies to enable essential site functionality.</p>
+    <p>Minimal. Intentional. No algorithm.</p>
   </footer>
 
-  <!-- 100% privacy-first analytics -->
-  <script async src="https://scripts.simpleanalyticscdn.com/latest.js"></script>
 </body>
 </html>
