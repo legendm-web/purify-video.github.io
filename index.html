@@ -97,125 +97,83 @@ iframe{
 </style>
 
 <script>
-const API_KEY = "AIzaSyAsiXire2Ls6HrwkS7tIFNqkNi5xpySeCg";
+const API_KEY = "YOUR_API_KEY_HERE";
 
+/* ---------- Theme ---------- */
 function setTheme(){
   const saved = localStorage.getItem("theme");
   const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
-  const theme = saved || (prefersDark ? "dark" : "light");
+  const theme = saved ? saved : (prefersDark ? "dark" : "light");
   document.documentElement.setAttribute("data-theme", theme);
 }
+
 function toggleTheme(){
-  const current=document.documentElement.getAttribute("data-theme");
-  const newTheme=current==="dark"?"light":"dark";
+  const current = document.documentElement.getAttribute("data-theme");
+  const newTheme = current === "dark" ? "light" : "dark";
   document.documentElement.setAttribute("data-theme", newTheme);
   localStorage.setItem("theme", newTheme);
 }
 
-function loadVideo(videoId){
-  document.querySelector(".iframe").style.display="block";
-  document.querySelector("iframe").src=
-    "https://www.youtube-nocookie.com/embed/"+videoId;
-  window.scrollTo({top:0,behavior:"smooth"});
-}
+setTheme();
 
-function formatDuration(duration){
-  const match = duration.match(/PT(\d+H)?(\d+M)?(\d+S)?/);
-  const hours = (match[1]||"").replace("H","");
-  const minutes = (match[2]||"").replace("M","");
-  const seconds = (match[3]||"").replace("S","");
-  return [
-    hours,
-    minutes.padStart(2,'0'),
-    seconds.padStart(2,'0')
-  ].filter(Boolean).join(":");
-}
-
+/* ---------- Search ---------- */
 async function searchVideos(query){
-  const results=document.getElementById("results");
-  results.innerHTML="Searching...";
+  const results = document.getElementById("results");
+  results.innerHTML = "Searching...";
 
-  try{
-    // Step 1: search
-    const searchRes=await fetch(
+  try {
+    const res = await fetch(
       `https://www.googleapis.com/youtube/v3/search?part=snippet&type=video&maxResults=20&q=${encodeURIComponent(query)}&key=${API_KEY}`
     );
-    const searchData=await searchRes.json();
 
-    const ids=searchData.items.map(item=>item.id.videoId).join(",");
+    const data = await res.json();
+    results.innerHTML = "";
 
-    // Step 2: get statistics + duration
-    const videoRes=await fetch(
-      `https://www.googleapis.com/youtube/v3/videos?part=contentDetails,statistics&id=${ids}&key=${API_KEY}`
-    );
-    const videoData=await videoRes.json();
+    if(!data.items || data.items.length === 0){
+      results.innerHTML = "No results found.";
+      return;
+    }
 
-    const videoMap={};
-    videoData.items.forEach(v=>{
-      videoMap[v.id]=v;
-    });
+    data.items.forEach(item => {
+      const videoId = item.id.videoId;
+      const title = item.snippet.title;
+      const channel = item.snippet.channelTitle;
+      const thumb = item.snippet.thumbnails.medium.url;
 
-    results.innerHTML="";
-
-    searchData.items.forEach(item=>{
-      const videoId=item.id.videoId;
-      const title=item.snippet.title;
-      const channel=item.snippet.channelTitle;
-      const thumb=item.snippet.thumbnails.medium.url;
-
-      const stats=videoMap[videoId];
-      const views=stats?.statistics?.viewCount || 0;
-      const duration=formatDuration(stats?.contentDetails?.duration || "PT0S");
-
-      const card=document.createElement("div");
-      card.className="video-card";
-      card.innerHTML=`
+      const card = document.createElement("div");
+      card.className = "video-card";
+      card.innerHTML = `
         <img src="${thumb}">
         <div class="video-info">
           <strong>${title}</strong>
           <small>${channel}</small>
-          <small>${Number(views).toLocaleString()} views • ${duration}</small>
         </div>
       `;
-      card.onclick=()=>loadVideo(videoId);
+      card.onclick = () => loadVideo(videoId);
       results.appendChild(card);
     });
 
-  }catch(err){
-    results.innerHTML="Search failed.";
+  } catch(err) {
     console.error(err);
+    results.innerHTML = "Search failed. Check console.";
   }
 }
 
-function handleSearch(e){
-  e.preventDefault();
-  const q=document.getElementById("searchInput").value.trim();
-  if(q) searchVideos(q);
+/* ---------- Load Video ---------- */
+function loadVideo(videoId){
+  const player = document.getElementById("player");
+  player.src = `https://www.youtube-nocookie.com/embed/${videoId}?autoplay=1`;
+  document.querySelector(".iframe").style.display = "block";
+  window.scrollTo({top:0,behavior:"smooth"});
 }
 
-function handlePurify(e){
-  e.preventDefault();
-  const urlInput=document.getElementById("urlInput").value.trim();
-  if(!urlInput)return;
-  try{
-    const url=new URL(urlInput);
-    let videoId="";
-    if(url.hostname.includes("youtube.com")){
-      videoId=url.searchParams.get("v");
-    }else if(url.hostname.includes("youtu.be")){
-      videoId=url.pathname.substring(1);
-    }
-    if(videoId) loadVideo(videoId);
-  }catch{
-    alert("Invalid YouTube URL");
+/* ---------- Form ---------- */
+function handleSearch(event){
+  event.preventDefault();
+  const query = document.getElementById("searchInput").value.trim();
+  if(query){
+    searchVideos(query);
   }
 }
-
-window.onload=setTheme;
 </script>
-</head>
-
-<body>
-
-<div class="theme-toggle">
-<button onclick
+</html>
