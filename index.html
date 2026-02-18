@@ -15,11 +15,26 @@
   --text-dark:#dcdcdc;
   --primary:#46aae9;
 }
-[data-theme="dark"]{background:var(--bg-dark);color:var(--text-dark);}
-[data-theme="light"]{background:var(--bg-light);color:var(--text-light);}
+
 *{box-sizing:border-box;font-family:'Noto Sans',sans-serif;}
 body{margin:0;}
-header,section,footer{max-width:1100px;margin:auto;padding:1rem;text-align:center;}
+
+[data-theme="light"]{
+  background:var(--bg-light);
+  color:var(--text-light);
+}
+
+[data-theme="dark"]{
+  background:var(--bg-dark);
+  color:var(--text-dark);
+}
+
+header,section,footer{
+  max-width:1000px;
+  margin:auto;
+  padding:1rem;
+  text-align:center;
+}
 
 input{
   padding:0.6rem;
@@ -29,6 +44,7 @@ input{
   width:60%;
   max-width:400px;
 }
+
 button{
   padding:0.6rem 1rem;
   background:var(--primary);
@@ -39,13 +55,16 @@ button{
   cursor:pointer;
   margin-left:0.5rem;
 }
+
 button:hover{opacity:0.9;}
 
 .iframe{
   display:none;
   aspect-ratio:16/9;
   margin:2rem auto;
+  max-width:1000px;
 }
+
 iframe{
   width:100%;
   height:100%;
@@ -57,6 +76,9 @@ iframe{
   grid-template-columns:repeat(auto-fill,minmax(250px,1fr));
   gap:1rem;
   margin-top:2rem;
+  max-width:1000px;
+  margin-left:auto;
+  margin-right:auto;
 }
 
 .video-card{
@@ -66,23 +88,32 @@ iframe{
   cursor:pointer;
   transition:0.2s;
 }
+
 [data-theme="dark"] .video-card{
   background:rgba(255,255,255,0.05);
 }
-.video-card:hover{transform:scale(1.03);}
-.video-card img{width:100%;display:block;}
+
+.video-card:hover{
+  transform:scale(1.03);
+}
+
+.video-card img{
+  width:100%;
+  display:block;
+}
 
 .video-info{
   padding:0.5rem;
   text-align:left;
 }
+
 .video-info strong{
   display:block;
   font-size:0.9rem;
 }
+
 .video-info small{
   opacity:0.7;
-  display:block;
 }
 
 .theme-toggle{
@@ -92,14 +123,42 @@ iframe{
 }
 
 @media(max-width:600px){
-  input,button{width:100%;margin:0.5rem 0;}
+  input{
+    width:100%;
+    margin-bottom:0.5rem;
+  }
+  button{
+    width:100%;
+    margin:0;
+  }
 }
 </style>
+</head>
+
+<body>
+
+<button class="theme-toggle" onclick="toggleTheme()">Toggle Theme</button>
+
+<header>
+  <h1>Purify Video</h1>
+  <p>Intentional YouTube Search</p>
+
+  <form onsubmit="handleSearch(event)">
+    <input id="searchInput" placeholder="Search YouTube..." required/>
+    <button type="submit">Search</button>
+  </form>
+</header>
+
+<div class="iframe">
+  <iframe id="player" allowfullscreen></iframe>
+</div>
+
+<div id="results"></div>
 
 <script>
 const API_KEY = "YOUR_API_KEY_HERE";
 
-/* ---------- Theme ---------- */
+/* THEME */
 function setTheme(){
   const saved = localStorage.getItem("theme");
   const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
@@ -116,12 +175,12 @@ function toggleTheme(){
 
 setTheme();
 
-/* ---------- Search ---------- */
+/* SEARCH */
 async function searchVideos(query){
   const results = document.getElementById("results");
   results.innerHTML = "Searching...";
 
-  try {
+  try{
     const res = await fetch(
       `https://www.googleapis.com/youtube/v3/search?part=snippet&type=video&maxResults=20&q=${encodeURIComponent(query)}&key=${API_KEY}`
     );
@@ -134,7 +193,7 @@ async function searchVideos(query){
       return;
     }
 
-    data.items.forEach(item => {
+    data.items.forEach(item=>{
       const videoId = item.id.videoId;
       const title = item.snippet.title;
       const channel = item.snippet.channelTitle;
@@ -149,17 +208,18 @@ async function searchVideos(query){
           <small>${channel}</small>
         </div>
       `;
-      card.onclick = () => loadVideo(videoId);
+
+      card.onclick = ()=>loadVideo(videoId);
       results.appendChild(card);
     });
 
-  } catch(err) {
+  }catch(err){
     console.error(err);
     results.innerHTML = "Search failed. Check console.";
   }
 }
 
-/* ---------- Load Video ---------- */
+/* PLAYER */
 function loadVideo(videoId){
   const player = document.getElementById("player");
   player.src = `https://www.youtube-nocookie.com/embed/${videoId}?autoplay=1`;
@@ -167,13 +227,13 @@ function loadVideo(videoId){
   window.scrollTo({top:0,behavior:"smooth"});
 }
 
-/* ---------- Form ---------- */
+/* FORM */
 function handleSearch(event){
   event.preventDefault();
   const query = document.getElementById("searchInput").value.trim();
-  if(query){
-    searchVideos(query);
-  }
+  if(query) searchVideos(query);
 }
 </script>
+
+</body>
 </html>
