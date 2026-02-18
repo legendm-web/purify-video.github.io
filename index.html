@@ -36,7 +36,7 @@
         .logo { font-weight: 600; font-size: 1.2rem; cursor: pointer; color: var(--primary); display: flex; align-items: center; gap: 10px; }
         .nav-right { display: flex; gap: 0.8rem; align-items: center; }
 
-        /* --- THEME EDITOR & MODALS --- */
+        /* --- PANELS --- */
         .floating-panel {
             display: none;
             position: fixed;
@@ -47,12 +47,12 @@
             box-shadow: 0 10px 25px rgba(0,0,0,0.2);
             z-index: 1000;
             border: 1px solid var(--primary);
-            min-width: 250px;
+            min-width: 280px;
         }
         .color-input { display: flex; justify-content: space-between; margin-bottom: 0.8rem; gap: 1rem; align-items: center; }
         input[type="color"] { border: none; width: 30px; height: 30px; cursor: pointer; background: none; }
 
-        /* --- BUTTONS & INPUTS --- */
+        /* --- UI ELEMENTS --- */
         button {
             padding: 0.6rem 1rem;
             background: var(--primary);
@@ -61,9 +61,7 @@
             color: white;
             font-weight: 600;
             cursor: pointer;
-            transition: transform 0.1s;
         }
-        button:active { transform: scale(0.95); }
         button.secondary { background: var(--accent); color: var(--text); }
         
         input[type="text"] {
@@ -72,14 +70,13 @@
             border: 1px solid var(--primary);
             background: var(--card-bg);
             color: var(--text);
-            width: 250px;
+            width: 200px;
         }
 
         /* --- LAYOUTS --- */
         .container { max-width: 1200px; margin: 2rem auto; padding: 0 1rem; }
         #watch-view { display: none; grid-template-columns: 1fr 350px; gap: 2rem; }
         
-        /* ZEN MODE */
         body.zen-mode nav, body.zen-mode .sidebar, body.zen-mode #watch-meta { display: none !important; }
         body.zen-mode #watch-view { grid-template-columns: 1fr; max-width: 1000px; margin-top: 5vh; }
         .zen-toggle-btn { position: fixed; bottom: 20px; right: 20px; z-index: 1001; }
@@ -93,19 +90,14 @@
         .video-info strong { display: block; font-size: 0.95rem; margin-bottom: 5px; line-height: 1.2; }
         .video-info small { opacity: 0.7; font-size: 0.8rem; }
 
-        /* --- HISTORY LIST --- */
-        .history-item { 
-            display: flex; gap: 1rem; align-items: center; margin-bottom: 1rem; 
-            padding: 0.5rem; border-radius: 8px; background: var(--accent); cursor: pointer;
-        }
+        .history-item { display: flex; gap: 1rem; align-items: center; margin-bottom: 1rem; padding: 0.5rem; border-radius: 8px; background: var(--accent); cursor: pointer; }
         .history-item img { width: 80px; border-radius: 4px; }
 
-        iframe { width: 100%; aspect-ratio: 16/9; border-radius: 12px; border: none; background: #000; box-shadow: 0 10px 30px rgba(0,0,0,0.3); }
+        iframe { width: 100%; aspect-ratio: 16/9; border-radius: 12px; border: none; background: #000; }
+        
+        #timer-display { font-weight: 600; color: var(--primary); font-size: 0.9rem; }
 
-        @media (max-width: 900px) {
-            #watch-view { grid-template-columns: 1fr; }
-            input[type="text"] { width: 120px; }
-        }
+        @media (max-width: 900px) { #watch-view { grid-template-columns: 1fr; } }
     </style>
 </head>
 <body>
@@ -116,6 +108,7 @@
         <input type="text" id="searchInput" placeholder="Search focus..." required/>
     </form>
     <div class="nav-right">
+        <span id="timer-display"></span>
         <button class="secondary" onclick="showHistory()">History</button>
         <button class="secondary" onclick="togglePanel('theme-editor')">🎨 Theme</button>
         <select id="algoPref" onchange="updateAlgoPref()" style="padding:0.5rem; border-radius:8px; border:none; background:var(--accent); color:var(--text);">
@@ -165,11 +158,8 @@
 </div>
 
 <script>
-/** * IMPORTANT: Replace this with your YouTube Data API v3 Key 
- */
 const API_KEY = "AIzaSyAsiXire2Ls6HrwkS7tIFNqkNi5xpySeCg";
 
-/* --- APP STATE --- */
 let state = {
     interests: JSON.parse(localStorage.getItem("interests")) || {},
     channels: JSON.parse(localStorage.getItem("channels")) || {},
@@ -177,10 +167,11 @@ let state = {
     algo: localStorage.getItem("algo") || "keywords",
     theme: JSON.parse(localStorage.getItem("customTheme")) || {
         bg: "#f4f4f5", text: "#1f1f1f", card: "#ffffff", primary: "#46aae9"
-    }
+    },
+    timeLeft: 3600 // 60 minutes session timer
 };
 
-/* --- THEME ENGINE --- */
+/* --- THEME --- */
 function applyCustomTheme() {
     state.theme = {
         bg: document.getElementById('color-bg').value,
@@ -199,38 +190,31 @@ function applyCustomTheme() {
 }
 
 function togglePanel(id) {
-    const panels = ['theme-editor', 'history-panel'];
-    panels.forEach(p => {
-        const el = document.getElementById(p);
-        if(p === id) el.style.display = el.style.display === 'block' ? 'none' : 'block';
-        else el.style.display = 'none';
-    });
+    const el = document.getElementById(id);
+    const isVisible = el.style.display === 'block';
+    document.querySelectorAll('.floating-panel').forEach(p => p.style.display = 'none');
+    el.style.display = isVisible ? 'none' : 'block';
 }
 
-/* --- CORE FUNCTIONS --- */
+/* --- CORE APP LOGIC --- */
 async function fetchVideos(query, containerId, isSidebar = false) {
     const container = document.getElementById(containerId);
     container.innerHTML = "Loading...";
     try {
         const res = await fetch(`https://www.googleapis.com/youtube/v3/search?part=snippet&type=video&maxResults=${isSidebar ? 6 : 12}&q=${encodeURIComponent(query)}&key=${API_KEY}`);
         const data = await res.json();
-        renderVideos(data.items, container, isSidebar);
+        renderVideos(data.items, container);
     } catch (e) { container.innerHTML = "API limit or error."; }
 }
 
-function renderVideos(items, container, isSidebar) {
+function renderVideos(items, container) {
     container.innerHTML = "";
     if(!items) return;
     items.forEach(item => {
         if (!item.id.videoId) return;
         const card = document.createElement("div");
         card.className = "video-card";
-        card.innerHTML = `
-            <img src="${item.snippet.thumbnails.medium.url}">
-            <div class="video-info">
-                <strong>${item.snippet.title}</strong>
-                <small>${item.snippet.channelTitle}</small>
-            </div>`;
+        card.innerHTML = `<img src="${item.snippet.thumbnails.medium.url}"><div class="video-info"><strong>${item.snippet.title}</strong><small>${item.snippet.channelTitle}</small></div>`;
         card.onclick = () => openWatch(item.id.videoId, item.snippet.title, item.snippet.channelTitle, item.snippet.thumbnails.medium.url);
         container.appendChild(card);
     });
@@ -256,10 +240,19 @@ function showHome() {
     document.getElementById("zenBtn").style.display = "none";
     document.body.classList.remove('zen-mode');
     document.getElementById("mainPlayer").src = "";
+    document.getElementById("feedTitle").innerText = "Your Intentional Feed";
+    // REFRESH FEED ON RETURN
     loadFeed();
 }
 
-/* --- HISTORY & STATS --- */
+/* --- DATA & STATS --- */
+function updateStats(title, channel) {
+    title.toLowerCase().split(' ').forEach(w => { if(w.length > 3) state.interests[w] = (state.interests[w] || 0) + 1; });
+    state.channels[channel] = (state.channels[channel] || 0) + 1;
+    localStorage.setItem("interests", JSON.stringify(state.interests));
+    localStorage.setItem("channels", JSON.stringify(state.channels));
+}
+
 function addToHistory(id, title, thumb) {
     state.history = state.history.filter(i => i.id !== id);
     state.history.unshift({id, title, thumb});
@@ -270,7 +263,7 @@ function addToHistory(id, title, thumb) {
 function showHistory() {
     togglePanel('history-panel');
     const list = document.getElementById('history-list');
-    list.innerHTML = state.history.length ? "" : "No history yet.";
+    list.innerHTML = "";
     state.history.forEach(item => {
         const div = document.createElement('div');
         div.className = "history-item";
@@ -282,14 +275,7 @@ function showHistory() {
 
 function clearHistory() { state.history = []; localStorage.setItem("watchHistory", "[]"); showHistory(); }
 
-function updateStats(title, channel) {
-    title.toLowerCase().split(' ').forEach(w => { if(w.length > 3) state.interests[w] = (state.interests[w] || 0) + 1; });
-    state.channels[channel] = (state.channels[channel] || 0) + 1;
-    localStorage.setItem("interests", JSON.stringify(state.interests));
-    localStorage.setItem("channels", JSON.stringify(state.channels));
-}
-
-/* --- ALGO & FEED --- */
+/* --- ALGO --- */
 function updateAlgoPref() {
     state.algo = document.getElementById("algoPref").value;
     localStorage.setItem("algo", state.algo);
@@ -297,10 +283,10 @@ function updateAlgoPref() {
 }
 
 function loadFeed() {
-    let q = "Productivity Science";
+    let q = "Intentional Living";
     if (state.algo === "channels") q = Object.entries(state.channels).sort((a,b)=>b[1]-a[1])[0]?.[0] || q;
     else if (state.algo === "keywords") q = Object.entries(state.interests).sort((a,b)=>b[1]-a[1]).slice(0,2).map(i=>i[0]).join(" ") || q;
-    else q = ["Deep Work", "Space Documentary", "Historical Crafts", "Nature Calm"][Math.floor(Math.random()*4)];
+    else q = ["Science documentary", "Productivity", "Philosophy", "Artisan crafts"][Math.floor(Math.random()*4)];
     
     fetchVideos(q, "home-results");
 }
@@ -317,6 +303,15 @@ function toggleZen() {
     document.getElementById('zenBtn').innerText = document.body.classList.contains('zen-mode') ? "Exit Zen" : "Zen Mode";
 }
 
+/* --- SESSION TIMER --- */
+setInterval(() => {
+    state.timeLeft--;
+    const mins = Math.floor(state.timeLeft / 60);
+    const secs = state.timeLeft % 60;
+    document.getElementById('timer-display').innerText = `${mins}:${secs < 10 ? '0' : ''}${secs}`;
+    if(state.timeLeft <= 0) { alert("Focus session complete. Take a break!"); state.timeLeft = 3600; showHome(); }
+}, 1000);
+
 /* --- INIT --- */
 document.getElementById('color-bg').value = state.theme.bg;
 document.getElementById('color-text').value = state.theme.text;
@@ -328,4 +323,3 @@ loadFeed();
 </script>
 </body>
 </html>
-
