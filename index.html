@@ -1,238 +1,108 @@
 <!doctype html>
 <html lang="en" data-theme="light">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <meta name="description" content="Watch purified YouTube videos with no ads. Just focus." />
-  <link rel="icon" href="data:,">
-  <title>purify video – watch purified YouTube videos with no ads</title>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>Purify Video – Intentional YouTube</title>
+<link rel="icon" href="data:,">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans:wght@400;600&display=swap" rel="stylesheet">
 
-  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans:wght@400;600&display=swap" rel="stylesheet" />
-  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined" rel="stylesheet" />
+<style>
+:root{
+  --bg-light:#f4f4f5;
+  --text-light:#1f1f1f;
+  --bg-dark:#1e1e20;
+  --text-dark:#dcdcdc;
+  --primary:#46aae9;
+}
+[data-theme="dark"]{background:var(--bg-dark);color:var(--text-dark);}
+[data-theme="light"]{background:var(--bg-light);color:var(--text-light);}
+*{box-sizing:border-box;font-family:'Noto Sans',sans-serif;}
+body{margin:0;}
+header,section,footer{max-width:1000px;margin:auto;padding:1rem;text-align:center;}
 
-  <style>
-    :root {
-      --bg-light: #f4f4f5;
-      --text-light: #1f1f1f;
-      --bg-dark: #1e1e20;
-      --text-dark: #dcdcdc;
-      --primary: #46aae9;
-      --input-bg: #ffffff;
-      --input-border: #ced4da;
-    }
+input{
+  padding:0.6rem;
+  font-size:1rem;
+  border-radius:6px;
+  border:1px solid #ccc;
+  width:60%;
+  max-width:400px;
+}
+button{
+  padding:0.6rem 1rem;
+  background:var(--primary);
+  border:none;
+  border-radius:6px;
+  color:white;
+  font-weight:600;
+  cursor:pointer;
+  margin-left:0.5rem;
+}
+button:hover{opacity:0.9;}
 
-    [data-theme="dark"] {
-      background-color: var(--bg-dark);
-      color: var(--text-dark);
-    }
+.iframe{
+  display:none;
+  aspect-ratio:16/9;
+  margin:2rem auto;
+}
+iframe{
+  width:100%;
+  height:100%;
+  border:none;
+}
 
-    [data-theme="light"] {
-      background-color: var(--bg-light);
-      color: var(--text-light);
-    }
+#results{
+  display:grid;
+  grid-template-columns:repeat(auto-fill,minmax(250px,1fr));
+  gap:1rem;
+  margin-top:2rem;
+}
 
-    * {
-      box-sizing: border-box;
-      font-family: 'Noto Sans', sans-serif;
-    }
+.video-card{
+  background:rgba(0,0,0,0.05);
+  border-radius:8px;
+  overflow:hidden;
+  cursor:pointer;
+  transition:0.2s;
+}
+[data-theme="dark"] .video-card{
+  background:rgba(255,255,255,0.05);
+}
+.video-card:hover{
+  transform:scale(1.03);
+}
+.video-card img{
+  width:100%;
+  display:block;
+}
+.video-info{
+  padding:0.5rem;
+  text-align:left;
+}
+.video-info strong{
+  display:block;
+  font-size:0.9rem;
+}
+.video-info small{
+  opacity:0.7;
+}
 
-    body {
-      margin: 0;
-      transition: background-color 0.3s, color 0.3s;
-    }
+.theme-toggle{
+  position:absolute;
+  top:1rem;
+  right:1rem;
+}
 
-    header, footer, section {
-      max-width: 900px;
-      margin: auto;
-      padding: 1rem;
-      text-align: center;
-    }
+@media(max-width:600px){
+  input,button{width:100%;margin:0.5rem 0;}
+}
+</style>
 
-    .iframe {
-      display: none;
-      aspect-ratio: 16/9;
-      margin: 2rem auto;
-    }
+<script>
+const API_KEY = "AIzaSyDJgUos6WAuXBlcuTGT2BR1_n0C5W0qDiI";
 
-    iframe {
-      width: 100%;
-      height: 100%;
-      border: none;
-    }
-
-    input[type="text"] {
-      padding: 0.5rem;
-      font-size: 1rem;
-      border-radius: 6px;
-      border: 1px solid var(--input-border);
-      width: 60%;
-      max-width: 400px;
-    }
-
-    button {
-      padding: 0.5rem 1rem;
-      background-color: var(--primary);
-      color: white;
-      border: none;
-      border-radius: 6px;
-      cursor: pointer;
-      font-weight: 600;
-      margin-left: 0.5rem;
-    }
-
-    #search-results {
-      margin-top: 2rem;
-      text-align: left;
-    }
-
-    .result {
-      padding: 1rem;
-      border-bottom: 1px solid #ccc;
-      cursor: pointer;
-    }
-
-    .result:hover {
-      background: rgba(0,0,0,0.05);
-    }
-
-    .theme-toggle {
-      position: absolute;
-      top: 1rem;
-      right: 1rem;
-    }
-
-    @media (max-width: 600px) {
-      input[type="text"] {
-        width: 100%;
-        margin-bottom: 0.5rem;
-      }
-      button {
-        width: 100%;
-        margin-left: 0;
-      }
-    }
-  </style>
-
-  <script>
-    const INVIDIOUS_INSTANCE = "https://yewtu.be";
-
-    function setThemeFromPreference() {
-      const saved = localStorage.getItem("theme");
-      const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
-      const theme = saved || (prefersDark ? "dark" : "light");
-      document.documentElement.setAttribute("data-theme", theme);
-    }
-
-    function toggleTheme() {
-      const current = document.documentElement.getAttribute("data-theme");
-      const newTheme = current === "dark" ? "light" : "dark";
-      document.documentElement.setAttribute("data-theme", newTheme);
-      localStorage.setItem("theme", newTheme);
-    }
-
-    function purifyVideo(videoId) {
-      document.querySelector('.iframe').style.display = 'block';
-      document.querySelector('iframe').src =
-        "https://www.youtube-nocookie.com/embed/" + videoId;
-      window.scrollTo({ top: 0, behavior: "smooth" });
-    }
-
-    async function searchVideos(query) {
-      const container = document.getElementById("search-results");
-      container.innerHTML = "Searching...";
-
-      try {
-        const res = await fetch(
-          INVIDIOUS_INSTANCE + "/api/v1/search?q=" +
-          encodeURIComponent(query) + "&type=video"
-        );
-        const data = await res.json();
-
-        container.innerHTML = "";
-
-        data.slice(0, 10).forEach(video => {
-          const div = document.createElement("div");
-          div.className = "result";
-          div.innerHTML = `
-            <strong>${video.title}</strong><br>
-            <small>${video.author}</small>
-          `;
-          div.onclick = () => purifyVideo(video.videoId);
-          container.appendChild(div);
-        });
-
-      } catch (err) {
-        container.innerHTML = "Search failed. Try again.";
-        console.error(err);
-      }
-    }
-
-    function handleSearch(e) {
-      e.preventDefault();
-      const query = document.getElementById("search-input").value.trim();
-      if (query) searchVideos(query);
-    }
-
-    function handlePurify(e) {
-      e.preventDefault();
-      const urlInput = document.getElementById("url-input").value.trim();
-      if (!urlInput) return;
-
-      try {
-        const url = new URL(urlInput);
-        let videoId = "";
-
-        if (url.hostname.includes("youtube.com")) {
-          videoId = url.searchParams.get("v");
-        } else if (url.hostname.includes("youtu.be")) {
-          videoId = url.pathname.substring(1);
-        }
-
-        if (videoId) purifyVideo(videoId);
-
-      } catch {
-        alert("Invalid YouTube URL");
-      }
-    }
-
-    window.onload = setThemeFromPreference;
-  </script>
-</head>
-
-<body>
-
-  <div class="theme-toggle">
-    <button onclick="toggleTheme()">Toggle Theme</button>
-  </div>
-
-  <header>
-    <h1>purify video</h1>
-    <h2>Watch purified YouTube videos with no ads. Just focus.</h2>
-
-    <form onsubmit="handlePurify(event)">
-      <input type="text" id="url-input" placeholder="Paste YouTube URL" />
-      <button type="submit">Purify</button>
-    </form>
-
-    <hr style="margin:2rem 0;">
-
-    <h2>Or search intentionally</h2>
-
-    <form onsubmit="handleSearch(event)">
-      <input type="text" id="search-input" placeholder="Search YouTube videos..." />
-      <button type="submit">Search</button>
-    </form>
-  </header>
-
-  <section class="iframe">
-    <iframe allow="autoplay; encrypted-media" allowfullscreen></iframe>
-  </section>
-
-  <section id="search-results"></section>
-
-  <footer>
-    <p>Minimal. Intentional. No algorithm.</p>
-  </footer>
-
-</body>
-</html>
+function setTheme(){
+  const saved = localStorage.getItem("theme");
+  const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
+  const theme = saved
