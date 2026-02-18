@@ -3,7 +3,7 @@
 <head>
     <meta charset="utf-8"/>
     <meta name="viewport" content="width=device-width, initial-scale=1"/>
-    <title>DivTube | Sovereign Intelligence</title>
+    <title>DivTube | Infinite Sovereignty</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     
     <style>
@@ -17,7 +17,7 @@
         body { margin: 0; background: var(--bg); color: var(--text-main); display: flex; height: 100vh; overflow: hidden; }
         
         aside { width: 280px; background: var(--sidebar); display: flex; flex-direction: column; padding: 1.5rem 1rem; border-right: 1px solid var(--border); }
-        main { flex: 1; display: flex; flex-direction: column; overflow-y: auto; position: relative; }
+        main { flex: 1; display: flex; flex-direction: column; overflow-y: auto; position: relative; scroll-behavior: smooth; }
         
         .logo-container { display: flex; align-items: center; gap: 12px; margin-bottom: 2.5rem; text-decoration: none; padding-left: 0.5rem; }
         .logo-img { width: 40px; height: 40px; border-radius: 8px; border: 2px solid var(--primary); background: var(--card); object-fit: cover; }
@@ -57,6 +57,8 @@
         
         #ghost-mode-status { font-size: 0.65rem; padding: 2px 6px; border-radius: 4px; background: #334155; color: white; display: none; }
         .ghost-active #ghost-mode-status { display: inline; background: var(--primary); }
+        
+        .loading-sentinel { height: 50px; display: flex; align-items: center; justify-content: center; color: var(--text-dim); font-size: 0.8rem; }
     </style>
 </head>
 <body id="body">
@@ -86,7 +88,7 @@
     </div>
 </aside>
 
-<main>
+<main id="main-scroll">
     <header>
         <form class="search-container" onsubmit="executeSearch(event)">
             <input type="text" id="searchBox" placeholder="Query the intelligence...">
@@ -96,11 +98,13 @@
     <div id="page-home" class="page">
         <h2>Personalized Feed</h2>
         <div id="home-grid" class="video-grid"></div>
+        <div class="loading-sentinel" id="home-sentinel">Scanning more intelligence...</div>
     </div>
 
     <div id="page-search" class="page">
         <h2 id="search-query-display">Results</h2>
         <div id="search-grid" class="video-grid"></div>
+        <div class="loading-sentinel" id="search-sentinel">Retrieving more data...</div>
     </div>
 
     <div id="page-watch" class="page">
@@ -170,7 +174,12 @@ let state = {
     config: JSON.parse(localStorage.getItem("dt_config")) || { wLike: 20, wWatch: 8, wBounce: -15, mask: false },
     focus: parseFloat(localStorage.getItem("dt_focus")) || 0,
     ghostMode: false,
-    view: 'home', watchStart: null, currentVid: null
+    view: 'home', 
+    watchStart: null, 
+    currentVid: null,
+    nextPageToken: '',
+    isLoading: false,
+    currentQuery: ''
 };
 
 function router() {
@@ -178,12 +187,13 @@ function router() {
     const [path, query] = hash.split('?');
     const params = new URLSearchParams(query);
     
-    // BUG FIX: Stop video when leaving watch page
     if (state.view === 'watch' && path !== 'watch') {
         document.getElementById('mainPlayer').src = "";
     }
 
     state.view = path;
+    state.nextPageToken = ''; // Reset pagination on view change
+    
     document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
     document.getElementById(`page-${path}`)?.classList.add('active');
     document.getElementById('page-watch').style.display = (path === 'watch' ? 'grid' : 'none');
@@ -200,17 +210,29 @@ function router() {
 window.onhashchange = router;
 window.onload = router;
 
-async function fetchYT(q, target) {
-    const url = `https://www.googleapis.com/youtube/v3/search?part=snippet&type=video&maxResults=12&q=${encodeURIComponent(q)}&key=${API_KEY}`;
+// --- CORE FETCHING ENGINE ---
+async function fetchYT(q, target, append = false) {
+    if (state.isLoading) return;
+    state.isLoading = true;
+    state.currentQuery = q;
+
+    const pageParam = state.nextPageToken ? `&pageToken=${state.nextPageToken}` : '';
+    const url = `https://www.googleapis.com/youtube/v3/search?part=snippet&type=video&maxResults=12&q=${encodeURIComponent(q)}${pageParam}&key=${API_KEY}`;
+    
     try {
         const res = await fetch(url);
         const data = await res.json();
         const container = document.getElementById(target);
         if(!container) return;
-        container.innerHTML = "";
+
+        if(!append) container.innerHTML = "";
+        
+        state.nextPageToken = data.nextPageToken || '';
+
         data.items.forEach(item => {
             if(!item.id.videoId) return;
             if(state.brain.bl.some(b => item.snippet.title.toLowerCase().includes(b))) return;
+            
             const card = document.createElement('div');
             card.className = 'video-card';
             card.innerHTML = `<img src="${item.snippet.thumbnails.medium.url}" class="${state.config.mask ? 'masked-thumb' : ''}"><div class="card-info"><h4>${item.snippet.title}</h4></div>`;
@@ -220,16 +242,33 @@ async function fetchYT(q, target) {
                     state.brain.history.push(state.currentVid);
                 }
                 window.location.hash = `#watch?v=${item.id.videoId}`;
-                document.getElementById('v-title').innerText = item.snippet.title;
             };
             container.appendChild(card);
         });
-    } catch(e) {}
+    } catch(e) {
+        console.error("Fetch Error:", e);
+    } finally {
+        state.isLoading = false;
+    }
 }
+
+// --- SCROLL LISTENER FOR INFINITE FEED ---
+document.getElementById('main-scroll').addEventListener('scroll', (e) => {
+    if (state.view !== 'home' && state.view !== 'search') return;
+    
+    const container = e.target;
+    // Trigger when 300px from the bottom
+    if (container.scrollHeight - container.scrollTop <= container.clientHeight + 300) {
+        if (state.nextPageToken && !state.isLoading) {
+            const target = state.view === 'home' ? 'home-grid' : 'search-grid';
+            fetchYT(state.currentQuery, target, true);
+        }
+    }
+});
 
 function initHome() {
     const top = Object.entries(state.brain.weights).sort((a,b)=>b[1]-a[1]).slice(0,2).map(i=>i[0]);
-    fetchYT(top.length ? top.join(" ") : "Science Technology", 'home-grid');
+    fetchYT(top.length ? top.join(" ") : "Documentary Science", 'home-grid');
 }
 
 function initSearch(q) {
@@ -260,7 +299,6 @@ function track(text, points) {
 function toggleGhostMode() {
     state.ghostMode = !state.ghostMode;
     document.getElementById('body').classList.toggle('ghost-active', state.ghostMode);
-    alert(state.ghostMode ? "Ghost Mode ON: No history or learning active." : "Ghost Mode OFF: DivTube is learning again.");
 }
 
 function initSettings() {
