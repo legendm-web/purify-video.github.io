@@ -11,6 +11,7 @@
             --bg: #0b0e14; --sidebar: #151921; --card: #1c212c;
             --text-main: #f8fafc; --text-dim: #94a3b8;
             --primary: #8b5cf6; --accent: #d8b4fe; --border: rgba(255,255,255,0.08);
+            --success: #10b981;
         }
 
         * { box-sizing: border-box; font-family: 'Inter', sans-serif; }
@@ -44,6 +45,11 @@
         #page-watch { display: none; grid-template-columns: 1fr 350px; gap: 2rem; }
         .player-box { width: 100%; aspect-ratio: 16/9; background: #000; border-radius: 16px; overflow: hidden; }
 
+        .action-bar { display: flex; gap: 10px; margin-top: 15px; }
+        .btn { border: 1px solid var(--border); color: white; padding: 10px 20px; border-radius: 8px; cursor: pointer; font-weight: 600; transition: 0.2s; background: var(--card); }
+        .btn:hover { border-color: var(--primary); background: rgba(139, 92, 246, 0.05); }
+        .btn-capture { border-color: var(--success); color: var(--success); }
+
         .settings-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; }
         .settings-card { background: var(--card); padding: 1.5rem; border-radius: 12px; border: 1px solid var(--border); }
         .control-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; }
@@ -57,7 +63,6 @@
         
         #ghost-mode-status { font-size: 0.65rem; padding: 2px 6px; border-radius: 4px; background: #334155; color: white; display: none; }
         .ghost-active #ghost-mode-status { display: inline; background: var(--primary); }
-        
         .loading-sentinel { height: 50px; display: flex; align-items: center; justify-content: center; color: var(--text-dim); font-size: 0.8rem; }
     </style>
 </head>
@@ -113,7 +118,10 @@
                 <iframe id="mainPlayer" style="width:100%; height:100%; border:none;" allow="autoplay; fullscreen"></iframe>
             </div>
             <h1 id="v-title" style="margin-top:1.5rem; font-size: 1.4rem;"></h1>
-            <button id="likeBtn" onclick="handleLike()" style="background:var(--card); border:1px solid var(--border); color:white; padding:10px 20px; border-radius:8px; cursor:pointer; margin-top:10px;">♥ Like Topic</button>
+            <div class="action-bar">
+                <button id="likeBtn" class="btn" onclick="handleLike()">♥ Like Topic</button>
+                <button class="btn btn-capture" onclick="redirectToCapture()">📸 Capture</button>
+            </div>
         </div>
         <div class="watch-sidebar">
             <h3>Neural Context</h3>
@@ -141,26 +149,10 @@
                     <span>Manual Masking</span>
                     <label class="switch"><input type="checkbox" id="mask-toggle" onchange="saveConfig()"><span class="slider"></span></label>
                 </div>
-                <button onclick="state.focus=0; saveConfig();" style="width:100%; background:none; border:1px solid var(--border); color:white; padding:5px; border-radius:5px; cursor:pointer;">Reset Focus Timer</button>
-            </div>
-            <div class="settings-card" style="grid-column: span 2; border: 1px dashed var(--primary);">
-                <h3>📡 Neural Port</h3>
-                <div style="display:flex; gap:10px;">
-                    <textarea id="io-area" placeholder="Paste algorithm string..." style="flex:1; height:60px; background:rgba(0,0,0,0.2); border:1px solid var(--border); border-radius:8px; color:var(--accent); padding:10px; font-size:0.7rem;"></textarea>
-                    <div style="display:flex; flex-direction:column; gap:5px;">
-                        <button onclick="exportAlgo()" style="background:var(--card); border:1px solid var(--primary); color:white; padding:5px 15px; border-radius:5px; cursor:pointer;">Export</button>
-                        <button onclick="importAlgo()" style="background:var(--primary); border:none; color:white; padding:5px 15px; border-radius:5px; cursor:pointer;">Import</button>
-                    </div>
-                </div>
             </div>
             <div class="settings-card" style="grid-column: span 2;">
-                <h3>🧠 Knowledge Profile</h3>
+                <h3>🧠 Knowledge Profile (Phrases)</h3>
                 <div id="tag-cloud"></div>
-                <div style="margin-top:1.5rem; display:flex; gap:10px;">
-                    <input type="text" id="bl-input" placeholder="Block keyword..." style="flex:1; background:var(--bg); border:1px solid var(--border); padding:8px; border-radius:6px; color:white;">
-                    <button onclick="addBL()" style="background:#ff4e4e; border:none; color:white; padding:0 15px; border-radius:6px; cursor:pointer;">Block</button>
-                </div>
-                <div id="bl-cloud" style="margin-top:10px;"></div>
             </div>
         </div>
     </div>
@@ -170,7 +162,7 @@
 const API_KEY = "AIzaSyAsiXire2Ls6HrwkS7tIFNqkNi5xpySeCg";
 
 let state = {
-    brain: JSON.parse(localStorage.getItem("dt_brain")) || { weights: {}, history: [], likes: [], bl: [] },
+    brain: JSON.parse(localStorage.getItem("dt_brain")) || { weights: {}, history: [], bl: [] },
     config: JSON.parse(localStorage.getItem("dt_config")) || { wLike: 20, wWatch: 8, wBounce: -15, mask: false },
     focus: parseFloat(localStorage.getItem("dt_focus")) || 0,
     ghostMode: false,
@@ -179,7 +171,8 @@ let state = {
     currentVid: null,
     nextPageToken: '',
     isLoading: false,
-    currentQuery: ''
+    currentQuery: '',
+    lastResultSet: [] // Used for analysis
 };
 
 function router() {
@@ -192,7 +185,7 @@ function router() {
     }
 
     state.view = path;
-    state.nextPageToken = ''; // Reset pagination on view change
+    state.nextPageToken = '';
     
     document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
     document.getElementById(`page-${path}`)?.classList.add('active');
@@ -210,6 +203,31 @@ function router() {
 window.onhashchange = router;
 window.onload = router;
 
+// --- ADVANCED NEURAL TRACKING (Phrases & Context) ---
+function track(text, points) {
+    if(!text || state.ghostMode) return;
+    
+    const clean = text.toLowerCase().replace(/[^\w\s]/gi, '').trim();
+    const words = clean.split(/\s+/).filter(w => w.length > 3);
+    
+    // Create Tokens: Individual words + Bigrams (2-word phrases)
+    let tokens = [...words];
+    for (let i = 0; i < words.length - 1; i++) {
+        tokens.push(`${words[i]} ${words[i+1]}`);
+    }
+
+    tokens.forEach(t => {
+        if(state.brain.bl.includes(t)) return;
+        // Phrases get a slight bonus multiplier for specificity
+        const multiplier = t.includes(' ') ? 1.5 : 1;
+        const score = Math.round(points * multiplier);
+        
+        state.brain.weights[t] = (state.brain.weights[t] || 0) + score;
+        if(state.brain.weights[t] <= 0) delete state.brain.weights[t];
+    });
+    localStorage.setItem("dt_brain", JSON.stringify(state.brain));
+}
+
 // --- CORE FETCHING ENGINE ---
 async function fetchYT(q, target, append = false) {
     if (state.isLoading) return;
@@ -222,17 +240,22 @@ async function fetchYT(q, target, append = false) {
     try {
         const res = await fetch(url);
         const data = await res.json();
+        
+        if (!data.items) {
+            console.warn("API returned no items. Check key/quota.");
+            state.isLoading = false;
+            return;
+        }
+
+        state.lastResultSet = data.items;
         const container = document.getElementById(target);
         if(!container) return;
 
         if(!append) container.innerHTML = "";
-        
         state.nextPageToken = data.nextPageToken || '';
 
         data.items.forEach(item => {
             if(!item.id.videoId) return;
-            if(state.brain.bl.some(b => item.snippet.title.toLowerCase().includes(b))) return;
-            
             const card = document.createElement('div');
             card.className = 'video-card';
             card.innerHTML = `<img src="${item.snippet.thumbnails.medium.url}" class="${state.config.mask ? 'masked-thumb' : ''}"><div class="card-info"><h4>${item.snippet.title}</h4></div>`;
@@ -240,6 +263,7 @@ async function fetchYT(q, target, append = false) {
                 if(!state.ghostMode) {
                     state.currentVid = { title: item.snippet.title, id: item.id.videoId };
                     state.brain.history.push(state.currentVid);
+                    track(item.snippet.title, 2); // Learn from what we click
                 }
                 window.location.hash = `#watch?v=${item.id.videoId}`;
             };
@@ -252,13 +276,11 @@ async function fetchYT(q, target, append = false) {
     }
 }
 
-// --- SCROLL LISTENER FOR INFINITE FEED ---
+// --- INFINITE SCROLL ---
 document.getElementById('main-scroll').addEventListener('scroll', (e) => {
     if (state.view !== 'home' && state.view !== 'search') return;
-    
     const container = e.target;
-    // Trigger when 300px from the bottom
-    if (container.scrollHeight - container.scrollTop <= container.clientHeight + 300) {
+    if (container.scrollHeight - container.scrollTop <= container.clientHeight + 400) {
         if (state.nextPageToken && !state.isLoading) {
             const target = state.view === 'home' ? 'home-grid' : 'search-grid';
             fetchYT(state.currentQuery, target, true);
@@ -267,33 +289,43 @@ document.getElementById('main-scroll').addEventListener('scroll', (e) => {
 });
 
 function initHome() {
-    const top = Object.entries(state.brain.weights).sort((a,b)=>b[1]-a[1]).slice(0,2).map(i=>i[0]);
-    fetchYT(top.length ? top.join(" ") : "Documentary Science", 'home-grid');
+    const sorted = Object.entries(state.brain.weights).sort((a,b)=>b[1]-a[1]);
+    const topQuery = sorted.length > 0 ? sorted[0][0] : "Documentary Science";
+    fetchYT(topQuery, 'home-grid');
 }
 
-function initSearch(q) {
+async function initSearch(q) {
     if(!q) return;
     document.getElementById('search-query-display').innerText = `Results: ${q}`;
-    fetchYT(q, 'search-grid');
-    if(!state.ghostMode) track(q, 2);
+    await fetchYT(q, 'search-grid');
+    
+    // Result Analysis: Learn from the titles the search actually brought back
+    if(!state.ghostMode && state.lastResultSet) {
+        track(q, 5); // Higher weight for direct query
+        state.lastResultSet.slice(0, 3).forEach(item => track(item.snippet.title, 1));
+    }
 }
 
 function initWatch(id) {
     if(!id) return;
     document.getElementById('mainPlayer').src = `https://www.youtube-nocookie.com/embed/${id}?autoplay=1`;
     state.watchStart = Date.now();
-    fetchYT(Object.keys(state.brain.weights).slice(-1)[0] || "Educational", 'sidebar-grid');
+    // Use last known heavy weight for sidebar
+    const sorted = Object.entries(state.brain.weights).sort((a,b)=>b[1]-a[1]);
+    fetchYT(sorted.length ? sorted[0][0] : "Educational", 'sidebar-grid');
 }
 
-function track(text, points) {
-    if(!text || state.ghostMode) return;
-    const words = text.toLowerCase().replace(/[^\w\s]/gi, '').split(' ').filter(w => w.length > 4);
-    words.forEach(w => {
-        if(state.brain.bl.includes(w)) return;
-        state.brain.weights[w] = (state.brain.weights[w] || 0) + points;
-        if(state.brain.weights[w] <= 0) delete state.brain.weights[w];
-    });
-    localStorage.setItem("dt_brain", JSON.stringify(state.brain));
+function redirectToCapture() {
+    window.open(`https://nevercap.ai/resources/youtube-to-mp4`, '_blank');
+}
+
+function executeSearch(e) { e.preventDefault(); window.location.hash = `#search?q=${document.getElementById('searchBox').value}`; }
+
+function handleLike() {
+    if(state.currentVid && !state.ghostMode) {
+        track(state.currentVid.title, parseInt(state.config.wLike));
+        document.getElementById('likeBtn').innerText = "✓ Liked";
+    }
 }
 
 function toggleGhostMode() {
@@ -303,49 +335,15 @@ function toggleGhostMode() {
 
 function initSettings() {
     const cloud = document.getElementById('tag-cloud'); cloud.innerHTML = "";
-    Object.entries(state.brain.weights).sort((a,b)=>b[1]-a[1]).forEach(([w, s]) => {
-        cloud.innerHTML += `<div class="tag">${w} (${s}) <span onclick="remTag('${w}', false)" style="cursor:pointer">×</span></div>`;
+    Object.entries(state.brain.weights).sort((a,b)=>b[1]-a[1]).slice(0, 20).forEach(([w, s]) => {
+        cloud.innerHTML += `<div class="tag">${w} (${s})</div>`;
     });
-    const blc = document.getElementById('bl-cloud'); blc.innerHTML = "";
-    state.brain.bl.forEach(w => {
-        blc.innerHTML += `<div class="tag" style="color:#ff4e4e;">${w} <span onclick="remTag('${w}', true)" style="cursor:pointer">×</span></div>`;
-    });
-    document.getElementById('w-like').value = state.config.wLike;
-    document.getElementById('mask-toggle').checked = state.config.mask;
 }
 
 function saveConfig() {
     state.config.wLike = document.getElementById('w-like').value;
     state.config.mask = document.getElementById('mask-toggle').checked;
     localStorage.setItem("dt_config", JSON.stringify(state.config));
-}
-
-function handleLike() {
-    if(state.currentVid && !state.ghostMode) {
-        track(state.currentVid.title, parseInt(state.config.wLike));
-        document.getElementById('likeBtn').innerText = "✓ Liked";
-    }
-}
-
-function executeSearch(e) { e.preventDefault(); window.location.hash = `#search?q=${document.getElementById('searchBox').value}`; }
-function addBL() { const v = document.getElementById('bl-input').value.toLowerCase(); if(v) { state.brain.bl.push(v); initSettings(); } }
-function remTag(w, isBl) { if(isBl) state.brain.bl = state.brain.bl.filter(i=>i!==w); else delete state.brain.weights[w]; initSettings(); }
-
-function exportAlgo() {
-    const str = btoa(JSON.stringify({b: state.brain, c: state.config}));
-    document.getElementById('io-area').value = str;
-    navigator.clipboard.writeText(str);
-    alert("Algorithm String Copied!");
-}
-
-function importAlgo() {
-    try {
-        const d = JSON.parse(atob(document.getElementById('io-area').value));
-        state.brain = d.b; state.config = d.c;
-        localStorage.setItem("dt_brain", JSON.stringify(state.brain));
-        localStorage.setItem("dt_config", JSON.stringify(state.config));
-        location.reload();
-    } catch(e) { alert("Invalid String"); }
 }
 
 function initHistory() {
