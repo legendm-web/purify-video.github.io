@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="utf-8"/>
-    <title>DivTube Sovereign v32.0</title>
+    <title>DivTube Sovereign v34.0</title>
     <script type="module" src="https://pyscript.net/releases/2024.1.1/core.js" defer></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&display=swap" rel="stylesheet">
     <style>
@@ -14,47 +14,39 @@
         * { box-sizing: border-box; font-family: 'Inter', sans-serif; }
         body { margin: 0; background: var(--bg); color: var(--text); display: flex; height: 100vh; overflow: hidden; }
         
-        /* Layout Structure */
+        /* Navigation */
         aside { width: 240px; background: var(--sidebar); border-right: 1px solid var(--border); padding: 1.5rem; display: flex; flex-direction: column; flex-shrink: 0; }
         .logo { font-weight: 900; font-size: 1.8rem; color: var(--primary); letter-spacing: -2px; cursor: pointer; margin-bottom: 2rem; }
-        .nav-item { padding: 12px; border-radius: 12px; cursor: pointer; color: rgba(255,255,255,0.4); font-weight: 700; margin-bottom: 5px; text-decoration: none; display: block; }
+        .nav-item { padding: 12px; border-radius: 12px; cursor: pointer; color: rgba(255,255,255,0.4); font-weight: 700; margin-bottom: 5px; text-decoration: none; display: flex; align-items: center; gap: 10px; }
         .nav-item.active { background: rgba(139, 92, 246, 0.1); color: var(--primary); }
 
         main { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
-        .top-bar { padding: 1rem 2rem; border-bottom: 1px solid var(--border); display: flex; gap: 20px; align-items: center; }
+        .top-bar { padding: 1rem 2rem; border-bottom: 1px solid var(--border); display: flex; gap: 20px; background: var(--bg); z-index: 100; }
         .content-area { flex: 1; overflow-y: auto; padding: 2rem; background: radial-gradient(circle at top right, #0d1117, #010204); }
 
-        /* Watch Layout */
+        /* Grid & Cards */
+        .video-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 1.5rem; }
+        .card { background: var(--card); border-radius: 12px; overflow: hidden; border: 1px solid var(--border); transition: 0.2s; cursor: pointer; }
+        .card:hover { border-color: var(--primary); transform: translateY(-2px); }
+        
+        /* Watch Page Layout */
         .watch-grid { display: grid; grid-template-columns: 1fr 380px; gap: 2rem; max-width: 1700px; margin: 0 auto; }
-        .theater-container { position: relative; width: 100%; padding-top: 56.25%; background: #000; border-radius: 16px; overflow: hidden; }
+        .theater-container { position: relative; width: 100%; padding-top: 56.25%; background: #000; border-radius: 16px; overflow: hidden; border: 1px solid var(--border); }
         .theater-container iframe { position: absolute; top: 0; left: 0; width: 100%; height: 100%; border: none; }
 
-        /* Social UI */
-        .action-bar { display: flex; align-items: center; gap: 15px; margin-top: 15px; padding-bottom: 15px; border-bottom: 1px solid var(--border); }
-        .btn { padding: 10px 20px; border-radius: 100px; border: none; font-weight: 800; cursor: pointer; display: flex; align-items: center; gap: 8px; transition: 0.2s; }
-        .btn-sub { background: var(--text); color: #000; }
-        .btn-sub.active { background: var(--card); color: var(--text); border: 1px solid var(--border); }
-        .btn-like { background: rgba(59, 130, 246, 0.1); color: var(--like); }
-        .btn-channel { background: rgba(139, 92, 246, 0.1); color: var(--primary); }
-
-        .info-panel { background: var(--card); border-radius: 16px; padding: 20px; margin-top: 20px; border: 1px solid var(--border); }
-        .info-header { font-size: 11px; font-weight: 900; color: var(--primary); text-transform: uppercase; margin-bottom: 10px; }
-        
-        /* Sidebar Recommendations */
-        .rec-item { display: flex; gap: 12px; margin-bottom: 15px; cursor: pointer; }
-        .rec-thumb { width: 160px; aspect-ratio: 16/9; border-radius: 8px; object-fit: cover; background: #000; }
-
+        .btn { padding: 10px 20px; border-radius: 100px; border: none; font-weight: 800; cursor: pointer; transition: 0.2s; }
         #boot-screen { position: fixed; inset: 0; background: #000; z-index: 20000; display: flex; align-items: center; justify-content: center; font-weight: 900; color: var(--primary); }
     </style>
 </head>
 <body>
 
-<div id="boot-screen">SYNCING_SOCIAL_CORE...</div>
+<div id="boot-screen">ARCHIVING_TEMPORAL_DATA...</div>
 
 <aside>
     <div class="logo" onclick="app.nav('/home')">DivTube</div>
-    <a class="nav-item active" id="link-home" onclick="app.nav('/home')">📡 Feed</a>
-    <a class="nav-item" id="link-settings" onclick="app.nav('/settings')">⚙️ Core</a>
+    <a class="nav-item" id="link-home" onclick="app.nav('/home')">📡 Neural Feed</a>
+    <a class="nav-item" id="link-history" onclick="app.nav('/history')">📜 History</a>
+    <a class="nav-item" id="link-settings" onclick="app.nav('/settings')">⚙️ AI Core</a>
 </aside>
 
 <main>
@@ -63,57 +55,41 @@
     </div>
 
     <div class="content-area">
-        <section id="view-home" class="view" style="display:none;">
-            <div id="grid" style="display:grid; grid-template-columns:repeat(auto-fill, minmax(300px,1fr)); gap:1.5rem;"></div>
+        <section id="view-grid" class="view" style="display:none;">
+            <h2 id="grid-title" style="margin-bottom:20px; font-weight:900; opacity:0.5; text-transform:uppercase;"></h2>
+            <div id="main-grid" class="video-grid"></div>
         </section>
 
         <section id="view-watch" class="view" style="display:none;">
             <div class="watch-grid">
                 <div class="main-player">
                     <div class="theater-container" id="theater-mount"></div>
-                    <h1 id="t-title" style="margin:20px 0 10px 0; font-size:1.5rem;"></h1>
+                    <h1 id="t-title" style="margin:20px 0 10px 0; font-size:1.5rem; font-weight:900;"></h1>
                     
-                    <div class="action-bar">
-                        <div id="watch-channel-mount" style="font-weight:900; margin-right:auto; cursor:pointer; color:var(--primary);" onclick="app.openChannel(app.activeVideo.channelId)"></div>
-                        <button id="btn-like" class="btn btn-like" onclick="app.toggleLike()">👍 <span id="like-count">0</span></button>
-                        <button id="btn-sub-watch" class="btn btn-sub" onclick="app.toggleSub(app.activeVideo.channelId)">SUBSCRIBE</button>
-                        <button class="btn btn-channel" onclick="app.openChannel(app.activeVideo.channelId)">CHANNEL INFO</button>
+                    <div style="display:flex; align-items:center; gap:15px; margin-top:15px; padding-bottom:15px; border-bottom:1px solid var(--border);">
+                        <div id="watch-channel-name" style="font-weight:900; margin-right:auto; color:var(--primary); cursor:pointer;"></div>
+                        <button id="btn-like" class="btn" onclick="app.toggleLike()" style="background:rgba(255,255,255,0.05); color:white;">👍 Like</button>
+                        <button id="btn-sub-watch" class="btn" onclick="app.toggleSub()" style="background:var(--text); color:black;">SUBSCRIBE</button>
                     </div>
 
-                    <div class="info-panel">
-                        <div class="info-header">Intelligence Description</div>
-                        <div id="t-desc" style="font-size:14px; color:#aaa; line-height:1.6; white-space: pre-wrap;"></div>
-                    </div>
-
-                    <div class="info-panel" style="margin-top:20px;">
-                        <div class="info-header">Neural Comments</div>
-                        <div id="t-comments" style="color:#555; font-style:italic;">Comments are simulated based on neural weight... (No API integration for comments currently active)</div>
+                    <div style="background:var(--card); padding:20px; border-radius:12px; margin-top:20px; border:1px solid var(--border);">
+                        <div id="t-desc" style="font-size:14px; color:#aaa; line-height:1.6; white-space:pre-wrap;"></div>
                     </div>
                 </div>
-
-                <div class="rec-block" id="rec-sidebar"></div>
+                <div id="rec-sidebar" style="display:flex; flex-direction:column; gap:15px;"></div>
             </div>
         </section>
 
         <section id="view-settings" class="view" style="display:none;">
-            <div style="max-width:400px; background:var(--card); padding:2rem; border-radius:16px;">
-                <label style="font-size:10px; font-weight:900;">API_V3_KEY</label>
-                <input type="password" id="ytKey" style="width:100%; margin:10px 0; padding:12px; background:#000; border:1px solid var(--border); color:white; border-radius:8px;">
-                <button class="btn" style="background:var(--primary); color:white; width:100%;" onclick="app.saveKey()">RELOAD ENGINE</button>
+            <div style="max-width:400px; background:var(--card); padding:2rem; border-radius:16px; border:1px solid var(--border);">
+                <h3 style="margin-top:0;">System Reboot</h3>
+                <input type="password" id="ytKey" placeholder="API KEY" style="width:100%; margin:10px 0; padding:12px; background:#000; border:1px solid var(--border); color:white; border-radius:8px;">
+                <button class="btn" style="background:var(--primary); color:white; width:100%;" onclick="app.saveKey()">SAVE & RELOAD</button>
+                <button class="btn" style="background:var(--warn); color:white; width:100%; margin-top:10px;" onclick="app.clearHistory()">PURGE HISTORY</button>
             </div>
         </section>
     </div>
 </main>
-
-<div id="modal-overlay" onclick="this.style.display='none'" style="position:fixed; inset:0; background:rgba(0,0,0,0.9); z-index:10000; display:none; align-items:center; justify-content:center;">
-    <div id="modal-content" onclick="event.stopPropagation()" style="background:var(--bg); width:90%; max-width:1000px; border-radius:24px; border:1px solid var(--border); padding:2rem; max-height:85vh; overflow-y:auto;">
-        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
-            <h2 id="m-title" style="margin:0;"></h2>
-            <div id="m-sub-btn"></div>
-        </div>
-        <div id="m-vids" style="display:grid; grid-template-columns:repeat(auto-fill, minmax(220px,1fr)); gap:15px;"></div>
-    </div>
-</div>
 
 <script type="py">
 import json
@@ -138,7 +114,11 @@ window.app.onEngineReady()
 <script>
 const app = {
     basePath: window.location.pathname.startsWith('/DivTube') ? '/DivTube' : '',
-    db: JSON.parse(localStorage.getItem('div_v32')) || { key: "", pool: [], brain: { subs: [], liked: [] } },
+    db: JSON.parse(localStorage.getItem('div_v34')) || { 
+        key: "", pool: [], brain: { subs: [], liked: [], history: [] } 
+    },
+    searchBuffer: [],
+    viewMode: 'home', // 'home', 'search', 'history'
     activeVideo: null,
     engineReady: false,
 
@@ -154,7 +134,9 @@ const app = {
         this.route();
     },
 
-    nav(path) { 
+    nav(path) {
+        if (path === '/home') this.viewMode = 'home';
+        if (path === '/history') this.viewMode = 'history';
         window.history.pushState({}, "", this.basePath + path); 
         this.route(); 
     },
@@ -162,123 +144,137 @@ const app = {
     route() {
         const route = window.location.pathname.replace(this.basePath, '') || '/home';
         document.querySelectorAll('.view').forEach(v => v.style.display = 'none');
-        
-        if (route.includes('settings')) document.getElementById('view-settings').style.display = 'block';
-        else if (route.includes('watch')) document.getElementById('view-watch').style.display = 'block';
-        else {
-            document.getElementById('view-home').style.display = 'block';
-            this.renderHome();
+        document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+
+        if (route.includes('settings')) {
+            document.getElementById('view-settings').style.display = 'block';
+            document.getElementById('link-settings').classList.add('active');
+        } else if (route.includes('watch')) {
+            document.getElementById('view-watch').style.display = 'block';
+        } else {
+            document.getElementById('view-grid').style.display = 'block';
+            if (route.includes('history')) {
+                this.viewMode = 'history';
+                document.getElementById('link-history').classList.add('active');
+            } else {
+                if (this.viewMode !== 'search') this.viewMode = 'home';
+                document.getElementById('link-home').classList.add('active');
+            }
+            this.renderGrid();
         }
     },
 
     async search(q) {
-        if (!this.db.key) return alert("API Key Required");
-        const res = await fetch(`https://www.googleapis.com/youtube/v3/search?part=snippet&q=${encodeURIComponent(q)}&maxResults=20&type=video&key=${this.db.key}`);
+        if (!q) return;
+        this.viewMode = 'search';
+        const res = await fetch(`https://www.googleapis.com/youtube/v3/search?part=snippet&q=${encodeURIComponent(q)}&maxResults=25&type=video&key=${this.db.key}`);
         const data = await res.json();
-        const mapped = data.items.map(i => ({
+        this.searchBuffer = data.items.map(i => ({
             id: i.id.videoId, channelId: i.snippet.channelId, channelTitle: i.snippet.channelTitle,
-            title: i.snippet.title.replace(/['"]/g, ""), thumb: i.snippet.thumbnails.high.url,
-            desc: i.snippet.description
+            title: i.snippet.title, thumb: i.snippet.thumbnails.high.url, desc: i.snippet.description
         }));
-        this.db.pool = [...mapped, ...this.db.pool].slice(0, 100);
+        // Update the learning pool
+        this.db.pool = [...this.searchBuffer, ...this.db.pool].filter((v,i,a) => a.findIndex(t=>(t.id===v.id))===i).slice(0, 200);
         this.save();
-        this.nav('/home');
+        this.nav('/home'); 
     },
 
-    renderHome() {
+    renderGrid() {
         if (!this.engineReady) return;
-        const ranked = JSON.parse(window.pyRanker(JSON.stringify(this.db.pool), JSON.stringify(this.db.brain)));
-        document.getElementById('grid').innerHTML = ranked.map(v => `
-            <div class="card" style="cursor:pointer;" onclick="app.play('${v.id}')">
-                <div style="width:100%; aspect-ratio:16/9; overflow:hidden; border-radius:12px; background:#000;">
-                    <img src="${v.thumb}" style="width:100%; height:100%; object-fit:cover;">
-                </div>
-                <div style="padding:12px;">
+        let list = [];
+        let title = "📡 NEURAL_FEED";
+
+        if (this.viewMode === 'search') {
+            list = this.searchBuffer;
+            title = "🔍 SEARCH_RESULTS";
+        } else if (this.viewMode === 'history') {
+            list = this.db.brain.history;
+            title = "📜 WATCH_HISTORY";
+        } else {
+            list = JSON.parse(window.pyRanker(JSON.stringify(this.db.pool), JSON.stringify(this.db.brain)));
+        }
+
+        document.getElementById('grid-title').innerText = title;
+        document.getElementById('main-grid').innerHTML = list.length ? list.map(v => `
+            <div class="card" onclick="app.play('${v.id}')">
+                <div style="width:100%; aspect-ratio:16/9; background:#000;"><img src="${v.thumb}" style="width:100%; height:100%; object-fit:cover;"></div>
+                <div style="padding:15px;">
                     <div style="font-weight:800; font-size:14px; height:40px; overflow:hidden;">${v.title}</div>
-                    <div style="color:var(--primary); font-size:11px; margin-top:8px;">${v.channelTitle}</div>
+                    <div style="color:var(--primary); font-size:11px; margin-top:8px; font-weight:900;">${v.channelTitle}</div>
                 </div>
             </div>
-        `).join('');
+        `).join('') : `<div style="opacity:0.3; padding:2rem;">Node is empty...</div>`;
     },
 
     play(id) {
-        const video = this.db.pool.find(v => v.id === id);
+        // Find video in any available source
+        const video = this.searchBuffer.find(v => v.id === id) || 
+                      this.db.pool.find(v => v.id === id) || 
+                      this.db.brain.history.find(v => v.id === id);
         if (!video) return;
-        this.activeVideo = video;
-        this.nav('/watch');
         
+        this.activeVideo = video;
+        
+        // Add to history (remove duplicate first to move it to the top)
+        this.db.brain.history = [video, ...this.db.brain.history.filter(v => v.id !== id)].slice(0, 50);
+        this.save();
+
+        this.nav('/watch');
         document.getElementById('theater-mount').innerHTML = `<iframe src="https://www.youtube-nocookie.com/embed/${id}?autoplay=1" allowfullscreen></iframe>`;
         document.getElementById('t-title').innerText = video.title;
-        document.getElementById('t-desc').innerText = video.desc || "No intelligence provided for this node.";
-        document.getElementById('watch-channel-mount').innerText = video.channelTitle;
+        document.getElementById('t-desc').innerText = video.desc || "Description data unavailable.";
+        document.getElementById('watch-channel-name').innerText = video.channelTitle;
         
         this.updateWatchUI();
         this.renderRecommendations();
-        window.scrollTo(0,0);
     },
 
     updateWatchUI() {
         const isSubbed = this.db.brain.subs.includes(this.activeVideo.channelId);
-        const btnSub = document.getElementById('btn-sub-watch');
-        btnSub.innerText = isSubbed ? "SUBSCRIBED" : "SUBSCRIBE";
-        btnSub.className = `btn btn-sub ${isSubbed ? 'active' : ''}`;
+        const btn = document.getElementById('btn-sub-watch');
+        btn.innerText = isSubbed ? "SUBSCRIBED" : "SUBSCRIBE";
+        btn.style.background = isSubbed ? "var(--card)" : "var(--text)";
+        btn.style.color = isSubbed ? "var(--text)" : "black";
 
         const isLiked = this.db.brain.liked.includes(this.activeVideo.id);
-        document.getElementById('btn-like').style.background = isLiked ? 'var(--like)' : '';
-        document.getElementById('btn-like').style.color = isLiked ? '#fff' : '';
+        document.getElementById('btn-like').style.color = isLiked ? "var(--like)" : "white";
+        document.getElementById('btn-like').style.background = isLiked ? "rgba(59, 130, 246, 0.1)" : "rgba(255,255,255,0.05)";
     },
 
-    toggleSub(cid) {
+    toggleSub() {
+        const cid = this.activeVideo.channelId;
         const idx = this.db.brain.subs.indexOf(cid);
         if (idx > -1) this.db.brain.subs.splice(idx, 1);
         else this.db.brain.subs.push(cid);
         this.save();
-        if (this.activeVideo) this.updateWatchUI();
+        this.updateWatchUI();
     },
 
     toggleLike() {
-        const idx = this.db.brain.liked.indexOf(this.activeVideo.id);
+        const vid = this.activeVideo.id;
+        const idx = this.db.brain.liked.indexOf(vid);
         if (idx > -1) this.db.brain.liked.splice(idx, 1);
-        else this.db.brain.liked.push(this.activeVideo.id);
+        else this.db.brain.liked.push(vid);
         this.save();
         this.updateWatchUI();
     },
 
-    async openChannel(cid) {
-        const overlay = document.getElementById('modal-overlay');
-        overlay.style.display = 'flex';
-        const res = await fetch(`https://www.googleapis.com/youtube/v3/channels?part=snippet&id=${cid}&key=${this.db.key}`);
-        const data = await res.json();
-        const info = data.items[0].snippet;
-        
-        document.getElementById('m-title').innerText = info.title;
-        document.getElementById('m-sub-btn').innerHTML = `<button class="btn btn-sub" onclick="app.toggleSub('${cid}'); app.openChannel('${cid}')">${this.db.brain.subs.includes(cid) ? 'SUBSCRIBED' : 'SUBSCRIBE'}</button>`;
-        
-        const vRes = await fetch(`https://www.googleapis.com/youtube/v3/search?part=snippet&channelId=${cid}&maxResults=12&type=video&key=${this.db.key}`);
-        const vData = await vRes.json();
-        document.getElementById('m-vids').innerHTML = vData.items.map(v => `
-            <div onclick="app.play('${v.id.videoId}')" style="cursor:pointer;">
-                <img src="${v.snippet.thumbnails.medium.url}" style="width:100%; aspect-ratio:16/9; border-radius:10px; object-fit:cover;">
-                <div style="font-size:11px; font-weight:800; margin-top:5px;">${v.snippet.title}</div>
-            </div>
-        `).join('');
-    },
-
     renderRecommendations() {
-        const recs = this.db.pool.filter(v => v.id !== this.activeVideo.id).slice(0, 12);
+        const recs = this.db.pool.filter(v => v.id !== this.activeVideo.id).slice(0, 15);
         document.getElementById('rec-sidebar').innerHTML = recs.map(v => `
-            <div class="rec-item" onclick="app.play('${v.id}')">
-                <img src="${v.thumb}" class="rec-thumb">
-                <div class="rec-meta">
-                    <div style="font-size:13px; font-weight:800; line-height:1.2;">${v.title.substring(0,50)}...</div>
-                    <div style="font-size:11px; color:var(--primary); margin-top:5px;">${v.channelTitle}</div>
+            <div style="display:flex; gap:12px; cursor:pointer;" onclick="app.play('${v.id}')">
+                <img src="${v.thumb}" style="width:140px; aspect-ratio:16/9; border-radius:8px; object-fit:cover;">
+                <div>
+                    <div style="font-size:12px; font-weight:800; line-height:1.2;">${v.title.substring(0,45)}...</div>
+                    <div style="font-size:10px; color:var(--primary); margin-top:4px;">${v.channelTitle}</div>
                 </div>
             </div>
         `).join('');
     },
 
+    clearHistory() { if(confirm("Purge all temporal data?")) { this.db.brain.history = []; this.save(); this.nav('/home'); } },
     saveKey() { this.db.key = document.getElementById('ytKey').value; this.save(); location.reload(); },
-    save() { localStorage.setItem('div_v32', JSON.stringify(this.db)); }
+    save() { localStorage.setItem('div_v34', JSON.stringify(this.db)); }
 };
 
 window.app = app;
