@@ -17,7 +17,6 @@
         * { box-sizing: border-box; font-family: 'Plus Jakarta Sans', sans-serif; }
         body { margin: 0; background: var(--bg); color: var(--text); display: flex; height: 100vh; overflow: hidden; }
 
-        /* REDESIGNED SIDEBAR & LOGO */
         aside { width: 260px; background: var(--sidebar); border-right: 1px solid var(--border); padding: 2rem 1.5rem; display: flex; flex-direction: column; flex-shrink: 0; z-index: 100; }
         .logo-wrap { display: flex; align-items: center; gap: 12px; margin-bottom: 3rem; cursor: pointer; }
         .logo-icon { width: 32px; height: 32px; background: var(--primary); border-radius: 10px; display: flex; align-items: center; justify-content: center; box-shadow: 0 0 20px rgba(139, 92, 246, 0.4); }
@@ -29,28 +28,24 @@
         main { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
         .top-bar { padding: 1.2rem 2.5rem; border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 2rem; background: rgba(5,5,7,0.8); backdrop-filter: blur(20px); z-index: 50; }
         .search-input { flex: 1; background: var(--card); border: 1px solid var(--border); color: white; padding: 14px 24px; border-radius: 16px; outline: none; transition: 0.3s; }
-        .search-input:focus { border-color: var(--primary); }
 
         .content-area { flex: 1; overflow-y: auto; padding: 2.5rem; }
         .video-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 2rem; }
         
-        /* CARD UI WITH NEURAL INSIGHT */
-        .card { background: var(--card); border-radius: 20px; overflow: hidden; border: 1px solid var(--border); transition: 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275); cursor: pointer; }
-        .card:hover { transform: translateY(-8px); border-color: var(--primary); box-shadow: 0 20px 40px rgba(0,0,0,0.4); }
+        .card { background: var(--card); border-radius: 20px; overflow: hidden; border: 1px solid var(--border); transition: 0.4s; cursor: pointer; }
+        .card:hover { transform: translateY(-8px); border-color: var(--primary); }
         .card img { width: 100%; aspect-ratio: 16/9; object-fit: cover; }
         .card-info { padding: 1.2rem; }
-        .card-title { font-weight: 700; font-size: 0.95rem; margin-bottom: 8px; line-height: 1.4; height: 2.8rem; overflow: hidden; }
-        .neural-insight { font-size: 0.7rem; background: rgba(139, 92, 246, 0.1); color: var(--primary); padding: 4px 8px; border-radius: 6px; font-weight: 700; display: inline-block; margin-top: 8px; }
+        .card-title { font-weight: 700; font-size: 0.95rem; margin-bottom: 8px; height: 2.8rem; overflow: hidden; }
+        .neural-insight { font-size: 0.7rem; background: rgba(139, 92, 246, 0.1); color: var(--primary); padding: 4px 8px; border-radius: 6px; font-weight: 700; display: inline-block; }
 
-        /* TOPIC CLOUD */
         .topic-cloud { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 2rem; }
-        .topic-pill { padding: 6px 14px; background: var(--glass); border-radius: 100px; font-size: 0.75rem; font-weight: 700; color: rgba(255,255,255,0.6); border: 1px solid var(--border); }
+        .topic-pill { padding: 6px 14px; background: var(--glass); border-radius: 100px; font-size: 0.75rem; font-weight: 700; color: rgba(255,255,255,0.6); }
 
-        /* WATCH VIEW */
         .watch-grid { display: grid; grid-template-columns: 1fr 400px; gap: 2.5rem; }
         .theater-box { border-radius: 24px; overflow: hidden; border: 1px solid var(--border); box-shadow: 0 30px 60px rgba(0,0,0,0.5); }
         
-        #boot-screen { position: fixed; inset: 0; background: #000; z-index: 9999; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 20px; font-weight: 800; }
+        #boot-screen { position: fixed; inset: 0; background: #000; z-index: 9999; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 20px; transition: 0.5s; }
         .loader { width: 30px; height: 30px; border: 3px solid var(--glass); border-top-color: var(--primary); border-radius: 50%; animation: spin 1s linear infinite; }
         @keyframes spin { to { transform: rotate(360deg); } }
     </style>
@@ -59,7 +54,8 @@
 
 <div id="boot-screen">
     <div class="loader"></div>
-    <div style="color:var(--primary); font-size:0.7rem; letter-spacing:2px;">CALIBRATING_NEURAL_WEIGHTS</div>
+    <div style="color:var(--primary); font-size:0.7rem; letter-spacing:2px; font-weight:800;">CALIBRATING_NEURAL_WEIGHTS</div>
+    <div id="boot-status" style="color:rgba(255,255,255,0.3); font-size:10px;">Loading Scikit-Learn...</div>
 </div>
 
 <aside>
@@ -69,58 +65,53 @@
     </div>
     <nav>
         <div class="nav-item" id="link-home" onclick="app.nav('/home')">📡 Feed</div>
-        <div class="nav-item" id="link-search" onclick="app.nav('/search')" style="display:none;">🔍 Current</div>
+        <div class="nav-item" id="link-search" onclick="app.nav('/search')" style="display:none;">🔍 Results</div>
         <div class="nav-item" id="link-history" onclick="app.nav('/history')">📜 History</div>
-        <div class="nav-item" id="link-settings" onclick="app.nav('/settings')">⚙️ AI Config</div>
+        <div class="nav-item" id="link-settings" onclick="app.nav('/settings')">⚙️ Engine</div>
     </nav>
 </aside>
 
 <main>
     <div class="top-bar">
-        <input type="text" class="search-input" id="globalSearch" placeholder="Search or describe a mood..." onkeydown="if(event.key==='Enter') app.search(this.value)">
+        <input type="text" class="search-input" id="globalSearch" placeholder="Inject intent..." onkeydown="if(event.key==='Enter') app.search(this.value)">
     </div>
-
     <div class="content-area" id="main-scroll">
         <section id="view-home" class="view" style="display:none;">
             <div id="topic-cloud" class="topic-cloud"></div>
             <div id="home-grid" class="video-grid"></div>
         </section>
-        
         <section id="view-search" class="view" style="display:none;"><div id="search-grid" class="video-grid"></div></section>
         <section id="view-history" class="view" style="display:none;"><div id="history-grid" class="video-grid"></div></section>
-
         <section id="view-watch" class="view" style="display:none;">
             <div class="watch-grid">
                 <div class="player-stack">
-                    <div class="theater-box">
-                        <div style="position:relative; padding-top:56.25%;"><div id="theater-mount" style="position:absolute; inset:0;"></div></div>
-                    </div>
+                    <div class="theater-box"><div style="position:relative; padding-top:56.25%;"><div id="theater-mount" style="position:absolute; inset:0;"></div></div></div>
                     <h1 id="t-title" style="margin:2rem 0 1rem; font-size:1.8rem; font-weight:800;"></h1>
-                    <div id="t-desc" style="background:var(--card); padding:1.5rem; border-radius:16px; font-size:0.9rem; line-height:1.6; color:#aaa; white-space:pre-wrap;"></div>
+                    <div id="t-desc" style="background:var(--card); padding:1.5rem; border-radius:16px; font-size:0.9rem; color:#aaa; white-space:pre-wrap;"></div>
                     <div id="comments-mount" style="margin-top:3rem;"></div>
                 </div>
                 <div id="rec-sidebar"></div>
             </div>
         </section>
-
         <section id="view-settings" class="view" style="display:none;">
-            <div style="max-width:460px; background:var(--card); padding:2.5rem; border-radius:24px; border: 1px solid var(--border);">
-                <h2>Neural Core Settings</h2>
-                <input type="password" id="ytKey" class="search-input" style="width:100%; margin-bottom:1rem;" placeholder="YouTube API Key">
-                <button onclick="app.saveKey()" style="width:100%; padding:14px; background:var(--primary); border:none; border-radius:12px; color:white; font-weight:bold; cursor:pointer;">REBOOT AI</button>
+            <div style="max-width:460px; background:var(--card); padding:2.5rem; border-radius:24px;">
+                <input type="password" id="ytKey" class="search-input" style="width:100%;" placeholder="YouTube API Key">
+                <button onclick="app.saveKey()" style="width:100%; margin-top:1rem; padding:14px; background:var(--primary); color:white; border:none; border-radius:12px; font-weight:800; cursor:pointer;">REBOOT AI</button>
             </div>
         </section>
     </div>
 </main>
 
 <script type="py" config>
-{ "packages": ["scikit-learn", "numpy"] }
+{
+    "packages": ["scikit-learn", "numpy"]
+}
 </script>
 
 <script type="py">
 import json
 import numpy as np
-from js import window
+from js import window, document
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
 
@@ -133,47 +124,36 @@ class ExplainableRanker:
         brain = json.loads(brain_json)
         if not pool: return json.dumps({"list": [], "topics": []})
 
-        # 1. Feature Extraction
         all_text = [v['title'] for v in pool]
         tfidf_matrix = self.vectorizer.fit_transform(all_text)
         feature_names = self.vectorizer.get_feature_names_out()
 
-        # 2. Identify Current Vibe (Topics)
         sums = tfidf_matrix.sum(axis=0).A1
         top_indices = sums.argsort()[-10:][::-1]
         top_topics = [feature_names[i] for i in top_indices]
 
-        # 3. Personalized User Vector
         history = brain.get("history", [])
         user_scores = np.zeros(len(pool))
         if history:
             hist_vec = self.vectorizer.transform([" ".join([h['title'] for h in history])])
             user_scores = cosine_similarity(hist_vec, tfidf_matrix).flatten()
 
-        # 4. Contextual Vector (Current Video)
         context_scores = np.zeros(len(pool))
         if current_json:
             curr = json.loads(current_json)
             curr_vec = self.vectorizer.transform([curr['title']])
             context_scores = cosine_similarity(curr_vec, tfidf_matrix).flatten()
 
-        # 5. Hybrid Weighting & Explanation Logic
         for i, v in enumerate(pool):
             v['score'] = float((context_scores[i] * 6.0) + (user_scores[i] * 4.0))
-            
-            # Local Explainability
-            if context_scores[i] > 0.3:
-                v['reason'] = "Related to current stream"
-            elif user_scores[i] > 0.3:
-                v['reason'] = "Based on your interest in " + top_topics[0]
-            elif v['channelId'] in brain.get("subs", []):
-                v['reason'] = "From your subscriptions"
-            else:
-                v['reason'] = "Neural recommendation"
+            if context_scores[i] > 0.2: v['reason'] = "Neural Context Match"
+            elif user_scores[i] > 0.2: v['reason'] = f"Based on interest in {top_topics[0]}"
+            else: v['reason'] = "Deep Feed Suggestion"
 
         pool.sort(key=lambda x: x['score'], reverse=True)
         return json.dumps({"list": pool, "topics": top_topics})
 
+# Initialize and export to window
 engine = ExplainableRanker()
 window.pyRanker = engine.process
 window.app.onEngineReady()
@@ -182,23 +162,27 @@ window.app.onEngineReady()
 <script>
 const app = {
     db: JSON.parse(localStorage.getItem('div_v41')) || { key: "", pool: [], brain: { subs: [], history: [] } },
-    searchBuffer: [],
+    engineReady: false,
     
     init() {
         document.getElementById('ytKey').value = this.db.key;
         window.onpopstate = () => this.route();
-        this.route();
+        // Don't route yet! Wait for onEngineReady.
     },
 
     onEngineReady() {
+        this.engineReady = true;
         document.getElementById('boot-screen').style.opacity = '0';
-        setTimeout(() => document.getElementById('boot-screen').remove(), 500);
-        this.route();
+        setTimeout(() => {
+            document.getElementById('boot-screen').remove();
+            this.route(); // Now it's safe to call Python
+        }, 500);
     },
 
     nav(path) { window.history.pushState({}, "", path); this.route(); },
 
     route() {
+        if(!this.engineReady) return; 
         const route = window.location.pathname.replace(/^\/|\/$/g, '') || 'home';
         document.querySelectorAll('.view').forEach(v => v.style.display = 'none');
         document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
@@ -230,18 +214,14 @@ const app = {
     },
 
     async play(id) {
-        const video = [...this.searchBuffer, ...this.db.pool, ...this.db.brain.history].find(v => v.id === id);
+        const video = [...(this.searchBuffer || []), ...this.db.pool, ...this.db.brain.history].find(v => v.id === id);
         if (!video) return;
         this.db.brain.history = [video, ...this.db.brain.history.filter(v => v.id !== id)].slice(0, 50);
         this.save();
         this.nav('/watch');
-
         document.getElementById('theater-mount').innerHTML = `<iframe src="https://www.youtube-nocookie.com/embed/${id}?autoplay=1" allowfullscreen style="width:100%; height:100%; border:none;"></iframe>`;
         document.getElementById('t-title').innerText = video.title;
         document.getElementById('t-desc').innerText = video.desc;
-        document.getElementById('main-scroll').scrollTo(0,0);
-        
-        this.fetchComments(id);
         this.renderWatchRecs(video);
     },
 
@@ -254,8 +234,7 @@ const app = {
                     <div style="font-size:0.8rem; font-weight:700; color:#fff;">${v.title.substring(0,40)}...</div>
                     <div class="neural-insight">${v.reason}</div>
                 </div>
-            </div>
-        `).join('');
+            </div>`).join('');
     },
 
     renderHome() {
@@ -264,33 +243,18 @@ const app = {
         this.fillGrid('home-grid', data.list);
     },
 
-    async fetchComments(videoId) {
-        const mount = document.getElementById('comments-mount');
-        mount.innerHTML = '<div class="loader"></div>';
-        try {
-            const res = await fetch(`https://www.googleapis.com/youtube/v3/commentThreads?part=snippet&videoId=${videoId}&maxResults=10&key=${this.db.key}`);
-            const data = await res.json();
-            mount.innerHTML = `<h3>Public Discussion</h3>` + data.items.map(item => {
-                const c = item.snippet.topLevelComment.snippet;
-                return `<div style="display:flex; gap:15px; margin-bottom:20px;"><img src="${c.authorProfileImageUrl}" style="width:32px; height:32px; border-radius:50%;"><div><div style="font-weight:800; font-size:0.8rem; color:var(--primary);">${c.authorDisplayName}</div><div style="font-size:0.85rem; color:#ccc;">${c.textDisplay}</div></div></div>`;
-            }).join('');
-        } catch (e) { mount.innerHTML = ''; }
-    },
-
     fillGrid(id, list) {
         document.getElementById(id).innerHTML = list.map(v => `
             <div class="card" onclick="app.play('${v.id}')">
                 <img src="${v.thumb}">
                 <div class="card-info">
                     <div class="card-title">${v.title}</div>
-                    <div class="card-meta"><span>${v.channelTitle}</span></div>
-                    <div class="neural-insight">${v.reason}</div>
+                    <div class="neural-insight">${v.reason || 'Calculated Match'}</div>
                 </div>
-            </div>
-        `).join('');
+            </div>`).join('');
     },
 
-    renderSearch() { this.fillGrid('search-grid', this.searchBuffer); },
+    renderSearch() { this.fillGrid('search-grid', this.searchBuffer || []); },
     renderHistory() { this.fillGrid('history-grid', this.db.brain.history); },
     saveKey() { this.db.key = document.getElementById('ytKey').value; this.save(); location.reload(); },
     save() { localStorage.setItem('div_v41', JSON.stringify(this.db)); }
