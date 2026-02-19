@@ -2,150 +2,206 @@
 <html lang="en">
 <head>
     <meta charset="utf-8"/>
-    <title>DivTube Sovereign v37.0</title>
+    <title>DivTube Sovereign</title>
+    <link id="favicon" rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='20' fill='%238b5cf6'/><path d='M35 30l40 20-40 20z' fill='white'/></svg>">
+    
     <script type="module" src="https://pyscript.net/releases/2024.1.1/core.js" defer></script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;800&display=swap" rel="stylesheet">
+    
     <style>
         :root {
-            --bg: #010204; --sidebar: #06080c; --card: #0c0f16;
-            --primary: #8b5cf6; --text: #f1f5f9; --border: rgba(255,255,255,0.06);
-            --sub: #f59e0b; --warn: #ef4444; --like: #3b82f6;
+            --bg: #050507; --sidebar: #0a0a0f; --card: #12121a;
+            --primary: #8b5cf6; --text: #ffffff; --border: rgba(255,255,255,0.08);
+            --accent: #3b82f6; --glass: rgba(255, 255, 255, 0.03);
         }
-        * { box-sizing: border-box; font-family: 'Inter', sans-serif; }
+        * { box-sizing: border-box; font-family: 'Plus Jakarta Sans', sans-serif; }
         body { margin: 0; background: var(--bg); color: var(--text); display: flex; height: 100vh; overflow: hidden; }
-        
-        aside { width: 240px; background: var(--sidebar); border-right: 1px solid var(--border); padding: 1.5rem; display: flex; flex-direction: column; flex-shrink: 0; }
-        .logo { font-weight: 900; font-size: 1.8rem; color: var(--primary); letter-spacing: -2px; cursor: pointer; margin-bottom: 2rem; }
-        .nav-item { padding: 12px; border-radius: 12px; cursor: pointer; color: rgba(255,255,255,0.4); font-weight: 700; margin-bottom: 5px; text-decoration: none; display: flex; align-items: center; gap: 10px; }
-        .nav-item.active { background: rgba(139, 92, 246, 0.1); color: var(--primary); }
+
+        /* REDESIGNED SIDEBAR & LOGO */
+        aside { width: 260px; background: var(--sidebar); border-right: 1px solid var(--border); padding: 2rem 1.5rem; display: flex; flex-direction: column; flex-shrink: 0; z-index: 100; }
+        .logo-wrap { display: flex; align-items: center; gap: 12px; margin-bottom: 3rem; cursor: pointer; }
+        .logo-icon { width: 32px; height: 32px; background: var(--primary); border-radius: 10px; display: flex; align-items: center; justify-content: center; box-shadow: 0 0 20px rgba(139, 92, 246, 0.4); }
+        .logo-text { font-weight: 800; font-size: 1.4rem; letter-spacing: -1px; background: linear-gradient(to right, #fff, #8b5cf6); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+
+        .nav-item { padding: 14px 18px; border-radius: 12px; cursor: pointer; color: rgba(255,255,255,0.5); font-weight: 600; margin-bottom: 8px; transition: 0.2s; display: flex; align-items: center; gap: 12px; }
+        .nav-item.active { background: rgba(139, 92, 246, 0.15); color: var(--primary); border: 1px solid rgba(139, 92, 246, 0.1); }
 
         main { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
-        .top-bar { padding: 1rem 2rem; border-bottom: 1px solid var(--border); display: flex; gap: 20px; background: var(--bg); z-index: 100; }
-        .content-area { flex: 1; overflow-y: auto; padding: 2rem; background: radial-gradient(circle at top right, #0d1117, #010204); }
+        .top-bar { padding: 1.2rem 2.5rem; border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 2rem; background: rgba(5,5,7,0.8); backdrop-filter: blur(20px); z-index: 50; }
+        .search-input { flex: 1; background: var(--card); border: 1px solid var(--border); color: white; padding: 14px 24px; border-radius: 16px; outline: none; transition: 0.3s; }
+        .search-input:focus { border-color: var(--primary); }
 
-        .video-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 1.5rem; }
-        .card { background: var(--card); border-radius: 12px; overflow: hidden; border: 1px solid var(--border); transition: 0.2s; cursor: pointer; }
-        .card:hover { border-color: var(--primary); transform: translateY(-2px); }
+        .content-area { flex: 1; overflow-y: auto; padding: 2.5rem; }
+        .video-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 2rem; }
         
-        /* Watch Layout */
-        .watch-grid { display: grid; grid-template-columns: 1fr 380px; gap: 2rem; max-width: 1700px; margin: 0 auto; }
-        .theater-container { position: relative; width: 100%; padding-top: 56.25%; background: #000; border-radius: 16px; overflow: hidden; border: 1px solid var(--border); }
-        .theater-container iframe { position: absolute; top: 0; left: 0; width: 100%; height: 100%; border: none; }
+        /* CARD UI WITH NEURAL INSIGHT */
+        .card { background: var(--card); border-radius: 20px; overflow: hidden; border: 1px solid var(--border); transition: 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275); cursor: pointer; }
+        .card:hover { transform: translateY(-8px); border-color: var(--primary); box-shadow: 0 20px 40px rgba(0,0,0,0.4); }
+        .card img { width: 100%; aspect-ratio: 16/9; object-fit: cover; }
+        .card-info { padding: 1.2rem; }
+        .card-title { font-weight: 700; font-size: 0.95rem; margin-bottom: 8px; line-height: 1.4; height: 2.8rem; overflow: hidden; }
+        .neural-insight { font-size: 0.7rem; background: rgba(139, 92, 246, 0.1); color: var(--primary); padding: 4px 8px; border-radius: 6px; font-weight: 700; display: inline-block; margin-top: 8px; }
 
-        /* Autoplay Overlay */
-        #autoplay-overlay { position: absolute; inset: 0; background: rgba(0,0,0,0.8); display: none; flex-direction: column; align-items: center; justify-content: center; z-index: 10; backdrop-filter: blur(5px); }
-        .timer-circle { width: 80px; height: 80px; border: 4px solid var(--primary); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 2rem; font-weight: 900; margin-bottom: 1rem; }
+        /* TOPIC CLOUD */
+        .topic-cloud { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 2rem; }
+        .topic-pill { padding: 6px 14px; background: var(--glass); border-radius: 100px; font-size: 0.75rem; font-weight: 700; color: rgba(255,255,255,0.6); border: 1px solid var(--border); }
 
-        .btn { padding: 10px 20px; border-radius: 100px; border: none; font-weight: 800; cursor: pointer; }
-        #boot-screen { position: fixed; inset: 0; background: #000; z-index: 20000; display: flex; align-items: center; justify-content: center; font-weight: 900; color: var(--primary); }
+        /* WATCH VIEW */
+        .watch-grid { display: grid; grid-template-columns: 1fr 400px; gap: 2.5rem; }
+        .theater-box { border-radius: 24px; overflow: hidden; border: 1px solid var(--border); box-shadow: 0 30px 60px rgba(0,0,0,0.5); }
+        
+        #boot-screen { position: fixed; inset: 0; background: #000; z-index: 9999; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 20px; font-weight: 800; }
+        .loader { width: 30px; height: 30px; border: 3px solid var(--glass); border-top-color: var(--primary); border-radius: 50%; animation: spin 1s linear infinite; }
+        @keyframes spin { to { transform: rotate(360deg); } }
     </style>
 </head>
 <body>
 
-<div id="boot-screen">INITIATING_STREAM_LOGIC_V37...</div>
+<div id="boot-screen">
+    <div class="loader"></div>
+    <div style="color:var(--primary); font-size:0.7rem; letter-spacing:2px;">CALIBRATING_NEURAL_WEIGHTS</div>
+</div>
 
 <aside>
-    <div class="logo" onclick="app.nav('/home')">DivTube</div>
-    <a class="nav-item" id="link-home" onclick="app.nav('/home')">📡 Home Feed</a>
-    <a class="nav-item" id="link-search" onclick="app.nav('/search')" style="display:none;">🔍 Search</a>
-    <a class="nav-item" id="link-history" onclick="app.nav('/history')">📜 History</a>
-    <a class="nav-item" id="link-settings" onclick="app.nav('/settings')">⚙️ AI Core</a>
+    <div class="logo-wrap" onclick="app.nav('/home')">
+        <div class="logo-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="white"><path d="M8 5v14l11-7z"/></svg></div>
+        <div class="logo-text">DIVTUBE</div>
+    </div>
+    <nav>
+        <div class="nav-item" id="link-home" onclick="app.nav('/home')">📡 Feed</div>
+        <div class="nav-item" id="link-search" onclick="app.nav('/search')" style="display:none;">🔍 Current</div>
+        <div class="nav-item" id="link-history" onclick="app.nav('/history')">📜 History</div>
+        <div class="nav-item" id="link-settings" onclick="app.nav('/settings')">⚙️ AI Config</div>
+    </nav>
 </aside>
 
 <main>
     <div class="top-bar">
-        <input type="text" id="globalSearch" placeholder="Inject Search Intent..." style="flex:1; background:var(--card); border:1px solid var(--border); color:white; padding:12px 20px; border-radius:100px; outline:none;" onkeydown="if(event.key==='Enter') app.search(this.value)">
+        <input type="text" class="search-input" id="globalSearch" placeholder="Search or describe a mood..." onkeydown="if(event.key==='Enter') app.search(this.value)">
     </div>
 
     <div class="content-area" id="main-scroll">
-        <section id="view-home" class="view" style="display:none;"><div id="home-grid" class="video-grid"></div></section>
+        <section id="view-home" class="view" style="display:none;">
+            <div id="topic-cloud" class="topic-cloud"></div>
+            <div id="home-grid" class="video-grid"></div>
+        </section>
+        
         <section id="view-search" class="view" style="display:none;"><div id="search-grid" class="video-grid"></div></section>
         <section id="view-history" class="view" style="display:none;"><div id="history-grid" class="video-grid"></div></section>
 
         <section id="view-watch" class="view" style="display:none;">
             <div class="watch-grid">
-                <div class="main-player">
-                    <div class="theater-container">
-                        <div id="theater-mount"></div>
-                        <div id="autoplay-overlay">
-                            <div class="timer-circle" id="auto-timer">7</div>
-                            <div style="font-weight:900;">NEXT_STREAM_INCOMING</div>
-                            <button class="btn" style="margin-top:15px; background:var(--warn); color:white;" onclick="app.cancelAutoplay()">CANCEL</button>
-                        </div>
+                <div class="player-stack">
+                    <div class="theater-box">
+                        <div style="position:relative; padding-top:56.25%;"><div id="theater-mount" style="position:absolute; inset:0;"></div></div>
                     </div>
-                    <h1 id="t-title" style="margin:20px 0 10px 0; font-size:1.5rem; font-weight:900;"></h1>
-                    <div style="display:flex; align-items:center; gap:15px; border-bottom:1px solid var(--border); padding-bottom:15px;">
-                        <div id="watch-channel-name" style="font-weight:900; margin-right:auto; color:var(--primary);"></div>
-                        <button id="btn-like" class="btn" onclick="app.toggleLike()" style="background:rgba(255,255,255,0.05); color:white;">👍 Like</button>
-                        <button id="btn-sub-watch" class="btn" onclick="app.toggleSub()" style="background:var(--text); color:black;">SUBSCRIBE</button>
-                    </div>
-                    <div id="t-desc" style="background:var(--card); padding:20px; border-radius:12px; margin-top:20px; font-size:14px; color:#aaa; line-height:1.6; white-space:pre-wrap;"></div>
+                    <h1 id="t-title" style="margin:2rem 0 1rem; font-size:1.8rem; font-weight:800;"></h1>
+                    <div id="t-desc" style="background:var(--card); padding:1.5rem; border-radius:16px; font-size:0.9rem; line-height:1.6; color:#aaa; white-space:pre-wrap;"></div>
+                    <div id="comments-mount" style="margin-top:3rem;"></div>
                 </div>
                 <div id="rec-sidebar"></div>
             </div>
         </section>
 
         <section id="view-settings" class="view" style="display:none;">
-            <div style="max-width:400px; background:var(--card); padding:2rem; border-radius:16px;">
-                <input type="password" id="ytKey" placeholder="API KEY" style="width:100%; padding:12px; background:#000; border:1px solid var(--border); color:white; border-radius:8px;">
-                <button class="btn" style="background:var(--primary); color:white; width:100%; margin-top:10px;" onclick="app.saveKey()">REBOOT SYSTEM</button>
+            <div style="max-width:460px; background:var(--card); padding:2.5rem; border-radius:24px; border: 1px solid var(--border);">
+                <h2>Neural Core Settings</h2>
+                <input type="password" id="ytKey" class="search-input" style="width:100%; margin-bottom:1rem;" placeholder="YouTube API Key">
+                <button onclick="app.saveKey()" style="width:100%; padding:14px; background:var(--primary); border:none; border-radius:12px; color:white; font-weight:bold; cursor:pointer;">REBOOT AI</button>
             </div>
         </section>
     </div>
 </main>
 
+<script type="py" config>
+{ "packages": ["scikit-learn", "numpy"] }
+</script>
+
 <script type="py">
 import json
+import numpy as np
 from js import window
+from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.metrics.pairwise import cosine_similarity
 
-class SovereignAI:
-    def rank(self, pool_json, brain_json):
+class ExplainableRanker:
+    def __init__(self):
+        self.vectorizer = TfidfVectorizer(stop_words='english', max_features=500)
+
+    def process(self, pool_json, brain_json, current_json=None):
         pool = json.loads(pool_json)
         brain = json.loads(brain_json)
-        subs = brain.get("subs", [])
-        for v in pool:
-            v['score'] = 1000 if v['channelId'] in subs else 1
-        pool.sort(key=lambda x: x['score'], reverse=True)
-        return json.dumps(pool)
+        if not pool: return json.dumps({"list": [], "topics": []})
 
-engine = SovereignAI()
-window.pyRanker = engine.rank
+        # 1. Feature Extraction
+        all_text = [v['title'] for v in pool]
+        tfidf_matrix = self.vectorizer.fit_transform(all_text)
+        feature_names = self.vectorizer.get_feature_names_out()
+
+        # 2. Identify Current Vibe (Topics)
+        sums = tfidf_matrix.sum(axis=0).A1
+        top_indices = sums.argsort()[-10:][::-1]
+        top_topics = [feature_names[i] for i in top_indices]
+
+        # 3. Personalized User Vector
+        history = brain.get("history", [])
+        user_scores = np.zeros(len(pool))
+        if history:
+            hist_vec = self.vectorizer.transform([" ".join([h['title'] for h in history])])
+            user_scores = cosine_similarity(hist_vec, tfidf_matrix).flatten()
+
+        # 4. Contextual Vector (Current Video)
+        context_scores = np.zeros(len(pool))
+        if current_json:
+            curr = json.loads(current_json)
+            curr_vec = self.vectorizer.transform([curr['title']])
+            context_scores = cosine_similarity(curr_vec, tfidf_matrix).flatten()
+
+        # 5. Hybrid Weighting & Explanation Logic
+        for i, v in enumerate(pool):
+            v['score'] = float((context_scores[i] * 6.0) + (user_scores[i] * 4.0))
+            
+            # Local Explainability
+            if context_scores[i] > 0.3:
+                v['reason'] = "Related to current stream"
+            elif user_scores[i] > 0.3:
+                v['reason'] = "Based on your interest in " + top_topics[0]
+            elif v['channelId'] in brain.get("subs", []):
+                v['reason'] = "From your subscriptions"
+            else:
+                v['reason'] = "Neural recommendation"
+
+        pool.sort(key=lambda x: x['score'], reverse=True)
+        return json.dumps({"list": pool, "topics": top_topics})
+
+engine = ExplainableRanker()
+window.pyRanker = engine.process
 window.app.onEngineReady()
 </script>
 
 <script>
 const app = {
-    basePath: window.location.pathname.startsWith('/DivTube') ? '/DivTube' : '',
-    db: JSON.parse(localStorage.getItem('div_v37')) || { key: "", pool: [], brain: { subs: [], liked: [], history: [] } },
+    db: JSON.parse(localStorage.getItem('div_v41')) || { key: "", pool: [], brain: { subs: [], history: [] } },
     searchBuffer: [],
-    relatedBuffer: [],
-    engineReady: false,
-    autoTimer: null,
-
+    
     init() {
         document.getElementById('ytKey').value = this.db.key;
         window.onpopstate = () => this.route();
         this.route();
-        // Global listener for YouTube Iframe API to detect video end
-        window.onYouTubeIframeAPIReady = () => {};
     },
 
     onEngineReady() {
-        this.engineReady = true;
-        document.getElementById('boot-screen').style.display = 'none';
+        document.getElementById('boot-screen').style.opacity = '0';
+        setTimeout(() => document.getElementById('boot-screen').remove(), 500);
         this.route();
     },
 
-    nav(path) {
-        window.history.pushState({}, "", this.basePath + path); 
-        this.route(); 
-    },
+    nav(path) { window.history.pushState({}, "", path); this.route(); },
 
     route() {
-        const route = window.location.pathname.replace(this.basePath, '').replace(/^\/|\/$/g, '') || 'home';
+        const route = window.location.pathname.replace(/^\/|\/$/g, '') || 'home';
         document.querySelectorAll('.view').forEach(v => v.style.display = 'none');
         document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
-        this.cancelAutoplay();
 
         if (route === 'settings') this.showView('settings');
         else if (route === 'watch') document.getElementById('view-watch').style.display = 'block';
@@ -160,138 +216,86 @@ const app = {
     },
 
     async search(q) {
-        if (!q) return;
-        const res = await fetch(`https://www.googleapis.com/youtube/v3/search?part=snippet&q=${encodeURIComponent(q)}&maxResults=25&type=video&key=${this.db.key}`);
+        if (!q || !this.db.key) return;
+        const res = await fetch(`https://www.googleapis.com/youtube/v3/search?part=snippet&q=${encodeURIComponent(q)}&maxResults=30&type=video&key=${this.db.key}`);
         const data = await res.json();
         this.searchBuffer = data.items.map(i => ({
             id: i.id.videoId, channelId: i.snippet.channelId, channelTitle: i.snippet.channelTitle,
             title: i.snippet.title, thumb: i.snippet.thumbnails.high.url, desc: i.snippet.description
         }));
-        this.db.pool = [...this.searchBuffer, ...this.db.pool].slice(0, 200);
+        this.db.pool = [...this.searchBuffer, ...this.db.pool].slice(0, 300);
         this.save();
         document.getElementById('link-search').style.display = 'flex';
         this.nav('/search');
     },
 
+    async play(id) {
+        const video = [...this.searchBuffer, ...this.db.pool, ...this.db.brain.history].find(v => v.id === id);
+        if (!video) return;
+        this.db.brain.history = [video, ...this.db.brain.history.filter(v => v.id !== id)].slice(0, 50);
+        this.save();
+        this.nav('/watch');
+
+        document.getElementById('theater-mount').innerHTML = `<iframe src="https://www.youtube-nocookie.com/embed/${id}?autoplay=1" allowfullscreen style="width:100%; height:100%; border:none;"></iframe>`;
+        document.getElementById('t-title').innerText = video.title;
+        document.getElementById('t-desc').innerText = video.desc;
+        document.getElementById('main-scroll').scrollTo(0,0);
+        
+        this.fetchComments(id);
+        this.renderWatchRecs(video);
+    },
+
+    renderWatchRecs(curr) {
+        const data = JSON.parse(window.pyRanker(JSON.stringify(this.db.pool), JSON.stringify(this.db.brain), JSON.stringify(curr)));
+        document.getElementById('rec-sidebar').innerHTML = data.list.slice(0, 10).map(v => `
+            <div style="display:flex; gap:12px; cursor:pointer; margin-bottom:15px;" onclick="app.play('${v.id}')">
+                <img src="${v.thumb}" style="width:140px; aspect-ratio:16/9; border-radius:12px; object-fit:cover;">
+                <div>
+                    <div style="font-size:0.8rem; font-weight:700; color:#fff;">${v.title.substring(0,40)}...</div>
+                    <div class="neural-insight">${v.reason}</div>
+                </div>
+            </div>
+        `).join('');
+    },
+
     renderHome() {
-        if (!this.engineReady) return;
-        const ranked = JSON.parse(window.pyRanker(JSON.stringify(this.db.pool), JSON.stringify(this.db.brain)));
-        this.fillGrid('home-grid', ranked);
+        const data = JSON.parse(window.pyRanker(JSON.stringify(this.db.pool), JSON.stringify(this.db.brain)));
+        document.getElementById('topic-cloud').innerHTML = data.topics.map(t => `<div class="topic-pill">#${t.toUpperCase()}</div>`).join('');
+        this.fillGrid('home-grid', data.list);
+    },
+
+    async fetchComments(videoId) {
+        const mount = document.getElementById('comments-mount');
+        mount.innerHTML = '<div class="loader"></div>';
+        try {
+            const res = await fetch(`https://www.googleapis.com/youtube/v3/commentThreads?part=snippet&videoId=${videoId}&maxResults=10&key=${this.db.key}`);
+            const data = await res.json();
+            mount.innerHTML = `<h3>Public Discussion</h3>` + data.items.map(item => {
+                const c = item.snippet.topLevelComment.snippet;
+                return `<div style="display:flex; gap:15px; margin-bottom:20px;"><img src="${c.authorProfileImageUrl}" style="width:32px; height:32px; border-radius:50%;"><div><div style="font-weight:800; font-size:0.8rem; color:var(--primary);">${c.authorDisplayName}</div><div style="font-size:0.85rem; color:#ccc;">${c.textDisplay}</div></div></div>`;
+            }).join('');
+        } catch (e) { mount.innerHTML = ''; }
+    },
+
+    fillGrid(id, list) {
+        document.getElementById(id).innerHTML = list.map(v => `
+            <div class="card" onclick="app.play('${v.id}')">
+                <img src="${v.thumb}">
+                <div class="card-info">
+                    <div class="card-title">${v.title}</div>
+                    <div class="card-meta"><span>${v.channelTitle}</span></div>
+                    <div class="neural-insight">${v.reason}</div>
+                </div>
+            </div>
+        `).join('');
     },
 
     renderSearch() { this.fillGrid('search-grid', this.searchBuffer); },
     renderHistory() { this.fillGrid('history-grid', this.db.brain.history); },
-
-    fillGrid(containerId, list) {
-        document.getElementById(containerId).innerHTML = list.map(v => `
-            <div class="card" onclick="app.play('${v.id}')">
-                <img src="${v.thumb}" style="width:100%; aspect-ratio:16/9; object-fit:cover;">
-                <div style="padding:15px;"><div style="font-weight:800; font-size:14px; height:40px; overflow:hidden;">${v.title}</div><div style="color:var(--primary); font-size:11px; margin-top:8px;">${v.channelTitle}</div></div>
-            </div>
-        `).join('');
-    },
-
-    async play(id) {
-        const video = [...this.searchBuffer, ...this.db.pool, ...this.db.brain.history, ...this.relatedBuffer].find(v => v.id === id);
-        if (!video) return;
-        this.activeVideo = video;
-        this.db.brain.history = [video, ...this.db.brain.history.filter(v => v.id !== id)].slice(0, 50);
-        this.save();
-        this.nav('/watch');
-        this.cancelAutoplay();
-
-        // Inject Iframe with postMessage enabled to track state
-        document.getElementById('theater-mount').innerHTML = `<iframe id="yt-player" src="https://www.youtube-nocookie.com/embed/${id}?autoplay=1&enablejsapi=1" allowfullscreen></iframe>`;
-        document.getElementById('t-title').innerText = video.title;
-        document.getElementById('t-desc').innerText = video.desc;
-        document.getElementById('watch-channel-name').innerText = video.channelTitle;
-        document.getElementById('main-scroll').scrollTo(0,0);
-        
-        this.updateWatchUI();
-        await this.fetchRelated(video);
-        this.listenForEnd();
-    },
-
-    listenForEnd() {
-        window.addEventListener("message", (event) => {
-            const data = JSON.parse(event.data);
-            if (data.event === "infoDelivery" && data.info && data.info.playerState === 0) {
-                this.startAutoplayCountdown();
-            }
-        });
-    },
-
-    startAutoplayCountdown() {
-        if (!this.relatedBuffer.length) return;
-        let count = 7;
-        const overlay = document.getElementById('autoplay-overlay');
-        const timerTxt = document.getElementById('auto-timer');
-        overlay.style.display = 'flex';
-        
-        this.autoTimer = setInterval(() => {
-            count--;
-            timerTxt.innerText = count;
-            if (count <= 0) {
-                this.cancelAutoplay();
-                this.play(this.relatedBuffer[0].id);
-            }
-        }, 1000);
-    },
-
-    cancelAutoplay() {
-        clearInterval(this.autoTimer);
-        document.getElementById('autoplay-overlay').style.display = 'none';
-        document.getElementById('auto-timer').innerText = '7';
-    },
-
-    async fetchRelated(video) {
-        const query = video.title.replace(/[^\w\s]/gi, '').split(' ').slice(0, 4).join(' ');
-        const res = await fetch(`https://www.googleapis.com/youtube/v3/search?part=snippet&q=${encodeURIComponent(query)}&maxResults=15&type=video&key=${this.db.key}`);
-        const data = await res.json();
-        this.relatedBuffer = data.items.map(i => ({
-            id: i.id.videoId, channelId: i.snippet.channelId, channelTitle: i.snippet.channelTitle,
-            title: i.snippet.title, thumb: i.snippet.thumbnails.high.url, desc: i.snippet.description
-        })).filter(v => v.id !== video.id);
-
-        document.getElementById('rec-sidebar').innerHTML = this.relatedBuffer.map(v => `
-            <div style="display:flex; gap:12px; cursor:pointer; margin-bottom:12px;" onclick="app.play('${v.id}')">
-                <img src="${v.thumb}" style="width:140px; aspect-ratio:16/9; border-radius:8px; object-fit:cover;">
-                <div style="font-size:12px; font-weight:800; line-height:1.2;">${v.title.substring(0,40)}...</div>
-            </div>
-        `).join('');
-    },
-
-    updateWatchUI() {
-        const isSub = this.db.brain.subs.includes(this.activeVideo.channelId);
-        const btn = document.getElementById('btn-sub-watch');
-        btn.innerText = isSub ? "SUBSCRIBED" : "SUBSCRIBE";
-        btn.style.background = isSub ? "var(--card)" : "var(--text)";
-        btn.style.color = isSub ? "var(--text)" : "black";
-        
-        const isLiked = this.db.brain.liked.includes(this.activeVideo.id);
-        document.getElementById('btn-like').style.color = isLiked ? "var(--like)" : "white";
-    },
-
-    toggleSub() {
-        const cid = this.activeVideo.channelId;
-        const idx = this.db.brain.subs.indexOf(cid);
-        if (idx > -1) this.db.brain.subs.splice(idx, 1); else this.db.brain.subs.push(cid);
-        this.save(); this.updateWatchUI();
-    },
-
-    toggleLike() {
-        const vid = this.activeVideo.id;
-        const idx = this.db.brain.liked.indexOf(vid);
-        if (idx > -1) this.db.brain.liked.splice(idx, 1); else this.db.brain.liked.push(vid);
-        this.save(); this.updateWatchUI();
-    },
-
     saveKey() { this.db.key = document.getElementById('ytKey').value; this.save(); location.reload(); },
-    save() { localStorage.setItem('div_v37', JSON.stringify(this.db)); }
+    save() { localStorage.setItem('div_v41', JSON.stringify(this.db)); }
 };
-
-window.app = app;
-app.init();
+window.app = app; app.init();
 </script>
 </body>
 </html>
