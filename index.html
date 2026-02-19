@@ -2,103 +2,133 @@
 <html lang="en">
 <head>
     <meta charset="utf-8"/>
-    <title>Sovereign v6.5 | Universal Python Neural Engine</title>
+    <title>DivTube Sovereign v8.0</title>
     
-    <link rel="stylesheet" href="https://pyscript.net/releases/2024.1.1/core.css">
-    <script type="module" src="https://pyscript.net/releases/2024.1.1/core.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/universal-sentence-encoder"></script>
+    <script type="module" src="https://pyscript.net/releases/2024.1.1/core.js" defer></script>
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs" defer></script>
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/universal-sentence-encoder" defer></script>
     
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;900&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800;900&family=JetBrains+Mono&display=swap" rel="stylesheet">
     <style>
         :root {
-            --bg: #030508; --sidebar: #0a0c12; --card: #12151c;
+            --bg: #030406; --sidebar: #080a0f; --card: #0f121a;
             --primary: #8b5cf6; --text: #f1f5f9; --border: rgba(255,255,255,0.06);
-            --accent: #10b981;
+            --accent: #10b981; --error: #ef4444;
         }
         * { box-sizing: border-box; font-family: 'Inter', sans-serif; }
         body { margin: 0; background: var(--bg); color: var(--text); display: flex; height: 100vh; overflow: hidden; }
         
-        aside { width: 280px; background: var(--sidebar); border-right: 1px solid var(--border); padding: 1.5rem; display: flex; flex-direction: column; }
-        main { flex: 1; overflow-y: auto; display: flex; flex-direction: column; }
-        
-        header { padding: 1rem 2rem; border-bottom: 1px solid var(--border); background: rgba(3,5,8,0.8); backdrop-filter: blur(12px); position: sticky; top: 0; z-index: 100; display: flex; gap: 12px; align-items: center; }
-        
-        #searchBox { flex: 1; background: var(--card); border: 1px solid var(--border); padding: 12px 24px; border-radius: 30px; color: white; outline: none; transition: 0.2s; }
-        #searchBox:focus { border-color: var(--primary); box-shadow: 0 0 15px rgba(139, 92, 246, 0.2); }
-        
-        .provider-pill { padding: 6px 14px; border-radius: 20px; border: 1px solid var(--border); cursor: pointer; font-size: 0.75rem; opacity: 0.4; transition: 0.3s; }
-        .provider-pill.active { background: var(--primary); border-color: var(--primary); opacity: 1; font-weight: 700; }
-        
-        .page { display: none; padding: 2rem; max-width: 1400px; margin: 0 auto; width: 100%; }
+        /* Sidebar & Navigation */
+        aside { width: 260px; background: var(--sidebar); border-right: 1px solid var(--border); padding: 1.5rem; display: flex; flex-direction: column; }
+        .logo-box { display: flex; align-items: center; gap: 12px; margin-bottom: 40px; }
+        .logo-box img { width: 32px; height: 32px; border-radius: 6px; }
+        .logo-text { font-weight: 900; letter-spacing: -2px; font-size: 1.5rem; color: var(--primary); }
+
+        .nav-item { 
+            padding: 14px 18px; border-radius: 12px; cursor: pointer; transition: 0.2s; 
+            margin-bottom: 8px; font-weight: 600; display: flex; align-items: center; gap: 12px;
+            color: rgba(255,255,255,0.4);
+        }
+        .nav-item:hover { background: rgba(255,255,255,0.03); color: white; }
+        .nav-item.active { background: rgba(139, 92, 246, 0.1); color: var(--primary); }
+
+        /* Content Area */
+        main { flex: 1; overflow-y: auto; position: relative; display: flex; flex-direction: column; }
+        header { 
+            padding: 1.5rem 3rem; background: rgba(3,4,6,0.8); backdrop-filter: blur(20px); 
+            display: flex; gap: 20px; align-items: center; border-bottom: 1px solid var(--border);
+            position: sticky; top: 0; z-index: 100;
+        }
+        #searchBox { 
+            flex: 1; background: var(--card); border: 1px solid var(--border); padding: 14px 28px; 
+            border-radius: 40px; color: white; outline: none; transition: 0.3s;
+        }
+        #searchBox:focus { border-color: var(--primary); box-shadow: 0 0 20px rgba(139, 92, 246, 0.15); }
+
+        /* Pages */
+        .page { display: none; padding: 3rem; width: 100%; max-width: 1600px; margin: 0 auto; }
         .active-page { display: block; }
         
-        .video-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 1.5rem; }
-        .card { background: var(--card); border-radius: 16px; overflow: hidden; border: 1px solid var(--border); cursor: pointer; transition: 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275); position: relative; }
-        .card:hover { transform: translateY(-8px); border-color: var(--primary); box-shadow: 0 12px 40px rgba(0,0,0,0.6); }
-        .card img { width: 100%; aspect-ratio: 16/9; object-fit: cover; border-bottom: 1px solid var(--border); }
-        
-        .tag-source { position: absolute; top: 12px; left: 12px; background: rgba(0,0,0,0.7); color: #fff; padding: 4px 8px; border-radius: 6px; font-size: 0.65rem; font-weight: 900; text-transform: uppercase; }
-        .match-pct { position: absolute; top: 12px; right: 12px; background: var(--primary); color: white; padding: 4px 10px; border-radius: 6px; font-size: 0.7rem; font-weight: 900; }
-        
-        .mixer-box { background: rgba(255,255,255,0.03); padding: 15px; border-radius: 12px; margin: 20px 0; border: 1px solid var(--border); }
-        input[type="range"] { width: 100%; accent-color: var(--primary); cursor: pointer; }
-        
-        .btn { padding: 12px; border-radius: 10px; border: 1px solid var(--border); background: transparent; color: white; cursor: pointer; text-align: left; transition: 0.2s; }
-        .btn:hover { background: rgba(255,255,255,0.05); }
-        .btn-p { background: var(--primary); border: none; font-weight: 700; text-align: center; }
-        
-        textarea { width: 100%; background: #000; border: 1px solid var(--border); color: var(--accent); padding: 15px; border-radius: 10px; font-family: monospace; resize: vertical; }
+        /* Video Grid */
+        .video-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 2rem; }
+        .card { 
+            background: var(--card); border-radius: 20px; overflow: hidden; border: 1px solid var(--border); 
+            transition: 0.4s; position: relative; cursor: pointer;
+        }
+        .card:hover { transform: translateY(-10px); border-color: var(--primary); }
+        .card img { width: 100%; aspect-ratio: 16/9; object-fit: cover; }
+        .source-pill { position: absolute; top: 15px; left: 15px; background: rgba(0,0,0,0.7); font-size: 10px; font-weight: 900; padding: 4px 10px; border-radius: 6px; text-transform: uppercase; }
+
+        /* Settings View */
+        .settings-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 2rem; }
+        .settings-card { background: var(--card); padding: 2rem; border-radius: 24px; border: 1px solid var(--border); }
+        .setting-group { margin-bottom: 2rem; }
+        label { display: block; font-size: 12px; font-weight: 800; color: rgba(255,255,255,0.4); margin-bottom: 12px; text-transform: uppercase; }
+        textarea, select, input[type="number"] { 
+            width: 100%; background: #000; border: 1px solid var(--border); color: #fff; padding: 12px; border-radius: 10px; font-family: 'JetBrains Mono';
+        }
+
+        /* Loading & Infinite Scroll Indicator */
+        #loader { text-align: center; padding: 40px; opacity: 0; transition: 0.3s; }
+        #loader.visible { opacity: 1; }
     </style>
 </head>
 <body>
 
 <aside>
-    <h1 style="letter-spacing: -3px; font-size: 2.2rem; color: var(--primary); margin: 0 0 5px 0;">SOVEREIGN</h1>
-    <div id="py-status" style="font-size: 0.65rem; color: #555; margin-bottom: 25px; font-weight: 800;">PY-KERNEL: LOADING...</div>
-
-    <div class="mixer-box">
-        <label style="font-size: 0.75rem; font-weight: 800; display: block; margin-bottom: 8px;">NEURAL MIXER</label>
-        <input type="range" id="neuralMixer" min="0" max="100" value="75">
-        <div style="display:flex; justify-content:space-between; font-size:0.6rem; opacity:0.5; margin-top:5px;">
-            <span>DISCOVERY</span>
-            <span>HISTORY</span>
-        </div>
+    <div class="logo-box">
+        <img src="image_6fdbfe.png" alt="Logo">
+        <div class="logo-text">DivTube</div>
     </div>
-
-    <nav style="display: flex; flex-direction: column; gap: 8px; flex: 1;">
-        <button class="btn" onclick="window.location.hash='#home'">🏠 Neural Stream</button>
-        <button class="btn" onclick="window.location.hash='#vault'">🔑 API Vault</button>
-    </nav>
+    <div class="nav-item active" onclick="nav('home', this)"><span>🏠</span> Neural Feed</div>
+    <div class="nav-item" onclick="nav('settings', this)"><span>⚙️</span> System Core</div>
     
-    <button class="btn" onclick="exportIntelligence()" style="font-size: 0.7rem; opacity: 0.6; border-style: dashed;">💾 Export Brain.json</button>
+    <div id="status" style="margin-top:auto; font-size: 10px; font-weight: 900; color: #444;">ENGINE_BOOT_PENDING</div>
 </aside>
 
-<main>
+<main id="mainContainer">
     <header>
-        <div style="display:flex; gap:8px;" id="provider-switches">
-            <div class="provider-pill active" id="pill-youtube" onclick="togglePlatform('youtube')">YouTube</div>
-            <div class="provider-pill active" id="pill-vimeo" onclick="togglePlatform('vimeo')">Vimeo</div>
-        </div>
-        <form onsubmit="handleCrossPlatformSearch(event)" style="display:contents">
-            <input type="text" id="searchBox" placeholder="Inject intent across all active APIs...">
+        <form onsubmit="initSearch(event)" style="display:contents">
+            <input type="text" id="searchBox" placeholder="Inject global intent...">
         </form>
     </header>
 
     <div id="page-home" class="page active-page">
         <div id="grid" class="video-grid"></div>
+        <div id="loader">Computing next cognitive batch...</div>
     </div>
 
-    <div id="page-vault" class="page">
-        <h2>Global Key Vault</h2>
-        <div style="background: var(--card); padding: 25px; border-radius: 20px; border: 1px solid var(--border);">
-            <label style="display:block; margin-bottom:10px; font-size:0.8rem; font-weight:700;">YouTube API Pool (One Key Per Line)</label>
-            <textarea id="ytPool" style="height:120px; margin-bottom:25px;" placeholder="AIzaSy..."></textarea>
-            
-            <label style="display:block; margin-bottom:10px; font-size:0.8rem; font-weight:700;">Vimeo Developer Token</label>
-            <textarea id="vimeoToken" style="height:50px; margin-bottom:25px;" placeholder="768e..."></textarea>
-            
-            <button class="btn btn-p" style="width:100%" onclick="saveVault()">Synchronize & Save Vault</button>
+    <div id="page-settings" class="page">
+        <h1 style="margin-bottom: 2rem;">System Core Settings</h1>
+        <div class="settings-grid">
+            <div class="settings-card">
+                <h3>Neural Optimizer</h3>
+                <div class="setting-group">
+                    <label>Discovery vs History Bias</label>
+                    <input type="range" id="neuralMixer" min="0" max="100" value="70" style="width:100%; accent-color: var(--primary);">
+                </div>
+                <div class="setting-group">
+                    <label>Similarity Threshold (0.0 - 1.0)</label>
+                    <input type="number" id="simLimit" step="0.1" value="0.4">
+                </div>
+                <div class="setting-group">
+                    <label>Engine Pruning</label>
+                    <button onclick="localStorage.removeItem('sov_brain'); location.reload();" style="color:var(--error); background:none; border:none; cursor:pointer;">Wipe Neural Memory</button>
+                </div>
+            </div>
+
+            <div class="settings-card">
+                <h3>API Infrastructure</h3>
+                <div class="setting-group">
+                    <label>YouTube Key Pool (One per line)</label>
+                    <textarea id="ytKeys" rows="5"></textarea>
+                </div>
+                <div class="setting-group">
+                    <label>Vimeo Developer Token</label>
+                    <input type="text" id="vimToken">
+                </div>
+                <button onclick="saveAllSettings()" style="background:var(--primary); color:white; border:none; padding:12px 24px; border-radius:12px; cursor:pointer; font-weight:800; width:100%;">Sync Infrastructure</button>
+            </div>
         </div>
     </div>
 </main>
@@ -106,169 +136,120 @@
 <script type="py">
 import json
 from pyodide.ffi import create_proxy
-from js import window, localStorage
+from js import window
 
-def neural_ranker(videos_json, brain_json, mixer_val):
-    vids = json.loads(videos_json)
-    brain = json.loads(brain_json)
+def process_ranking(v_json, b_json, mixer_val):
+    vids, brain = json.loads(v_json), json.loads(b_json)
     mixer = float(mixer_val) / 100.0
-    
     intents = brain.get('intents', {})
     
     for v in vids:
-        max_sim = 0
         v_vec = v.get('vector', [])
-        
-        for name, data in intents.items():
-            i_vec = data.get('vector', [])
-            # Cosine similarity simplified for normalized vectors
-            similarity = sum(a * b for a, b in zip(v_vec, i_vec))
-            weighted_score = similarity * data.get('weight', 1)
-            if weighted_score > max_sim:
-                max_sim = weighted_score
-        
-        # Merge logic: Base results + History influence
-        v['final_score'] = (max_sim * mixer) + (0.1 * (1.0 - mixer))
-        
-    # Sort and Return
-    vids.sort(key=lambda x: x['final_score'], reverse=True)
+        # Vector Dot Product Sim
+        scores = [sum(a*b for a,b in zip(v_vec, d['vector'])) * d.get('weight', 1) for d in intents.values()]
+        v['score'] = (max(scores) * mixer) if scores else (0.5 * mixer)
+    
+    vids.sort(key=lambda x: x['score'], reverse=True)
     return json.dumps(vids)
 
-def clean_brain(brain_json):
-    brain = json.loads(brain_json)
-    intents = brain.get('intents', {})
-    if len(intents) > 50:
-        # Keep only top 50 weighted intents to prevent performance drag
-        sorted_keys = sorted(intents, key=lambda k: intents[k]['weight'], reverse=True)
-        brain['intents'] = {k: intents[k] for k in sorted_keys[:50]}
-    return json.dumps(brain)
-
-# Bindings
-window.pyNeuralRanker = create_proxy(neural_ranker)
-window.pyCleanBrain = create_proxy(clean_brain)
-window.document.getElementById("py-status").innerText = "PY-KERNEL: ONLINE"
-window.document.getElementById("py-status").style.color = "var(--accent)"
+window.pyRanker = create_proxy(process_ranking)
+window.document.getElementById("status").innerText = "ENGINE_READY_V8"
 </script>
 
 <script>
-/** * SOVEREIGN JAVASCRIPT CORE 
- */
-let model;
+let model, isFetching = false;
+let currentQuery = "";
+let tokens = { youtube: null, vimeo: 1 };
 let state = {
-    platforms: ['youtube', 'vimeo'],
     vault: JSON.parse(localStorage.getItem('sov_vault')) || { youtube: [], vimeo: "" },
-    brain: JSON.parse(localStorage.getItem('sov_brain')) || { intents: {} },
-    ytIdx: 0
+    brain: JSON.parse(localStorage.getItem('sov_brain')) || { intents: {} }
 };
 
-async function boot() {
-    model = await use.load();
-    router();
-}
-
-const Fetchers = {
-    youtube: async (q) => {
-        const keys = state.vault.youtube;
-        if (!keys.length) return [];
-        const key = keys[state.ytIdx % keys.length];
-        try {
-            const r = await fetch(`https://www.googleapis.com/youtube/v3/search?part=snippet&type=video&maxResults=10&q=${encodeURIComponent(q)}&key=${key}`);
-            if (r.status === 403) { state.ytIdx++; return Fetchers.youtube(q); }
-            const d = await r.json();
-            return d.items.map(v => ({ title: v.snippet.title, thumb: v.snippet.thumbnails.medium.url, link: `https://youtube.com/watch?v=${v.id.videoId}`, source: 'youtube' }));
-        } catch { return []; }
-    },
-    vimeo: async (q) => {
-        const tok = state.vault.vimeo;
-        if (!tok) return [];
-        try {
-            const r = await fetch(`https://api.vimeo.com/videos?query=${encodeURIComponent(q)}&per_page=10`, { headers: { 'Authorization': `Bearer ${tok}` }});
-            const d = await r.json();
-            return d.data.map(v => ({ title: v.name, thumb: v.pictures.sizes[2].link, link: v.link, source: 'vimeo' }));
-        } catch { return []; }
+async function initAI() {
+    if (!model) {
+        document.getElementById('status').innerText = "ENGINE_LOADING_MODELS";
+        model = await use.load();
+        document.getElementById('status').innerText = "ENGINE_ONLINE";
     }
-};
-
-async function handleCrossPlatformSearch(e) {
-    if(e) e.preventDefault();
-    const q = document.getElementById('searchBox').value;
-    if(!q) return;
-
-    // 1. Parallel Fetch from all active platforms
-    const promises = state.platforms.map(p => Fetchers[p](q));
-    const rawResults = (await Promise.all(promises)).flat();
-
-    // 2. TF.js Vectorization
-    const titles = rawResults.map(r => r.title);
-    const embeds = await model.embed(titles);
-    const vecs = embeds.arraySync();
-    
-    const preparedVids = rawResults.map((v, i) => ({ ...v, vector: vecs[i] }));
-
-    // 3. Python Semantic Ranking
-    const mixer = document.getElementById('neuralMixer').value;
-    const rankedJson = window.pyNeuralRanker(JSON.stringify(preparedVids), JSON.stringify(state.brain), mixer);
-    
-    render(JSON.parse(rankedJson));
-    trackIntent(q, 10);
 }
 
-async function trackIntent(text, weight) {
-    const embed = await model.embed([text]);
-    state.brain.intents[text] = { weight: (state.brain.intents[text]?.weight || 0) + weight, vector: embed.arraySync()[0] };
+// Infinite Scroll Logic
+document.getElementById('mainContainer').addEventListener('scroll', async (e) => {
+    const { scrollTop, scrollHeight, clientHeight } = e.target;
+    if (scrollTop + clientHeight >= scrollHeight - 300 && !isFetching && currentQuery) {
+        fetchNextBatch();
+    }
+});
+
+async function initSearch(e) {
+    if(e) e.preventDefault();
+    currentQuery = document.getElementById('searchBox').value;
+    document.getElementById('grid').innerHTML = "";
+    tokens = { youtube: null, vimeo: 1 };
+    fetchNextBatch();
+}
+
+async function fetchNextBatch() {
+    isFetching = true;
+    document.getElementById('loader').classList.add('visible');
+    await initAI();
+
+    const results = await fetchFromProviders(currentQuery);
+    if(results.length === 0) { isFetching = false; return; }
+
+    const embeds = await model.embed(results.map(r => r.title));
+    const vecs = embeds.arraySync();
+    const data = results.map((v, i) => ({ ...v, vector: vecs[i] }));
+
+    const ranked = JSON.parse(window.pyRanker(JSON.stringify(data), JSON.stringify(state.brain), document.getElementById('neuralMixer').value));
+    render(ranked);
     
-    // Optimization: Clean brain with Python
-    const cleaned = window.pyCleanBrain(JSON.stringify(state.brain));
-    state.brain = JSON.parse(cleaned);
-    localStorage.setItem('sov_brain', JSON.stringify(state.brain));
+    isFetching = false;
+    document.getElementById('loader').classList.remove('visible');
+}
+
+async function fetchFromProviders(q) {
+    let combined = [];
+    // YouTube
+    if(state.vault.youtube.length > 0) {
+        const ytUrl = `https://www.googleapis.com/youtube/v3/search?part=snippet&q=${q}&maxResults=12&type=video&key=${state.vault.youtube[0]}${tokens.youtube ? `&pageToken=${tokens.youtube}` : ''}`;
+        const r = await fetch(ytUrl);
+        const d = await r.json();
+        tokens.youtube = d.nextPageToken;
+        combined.push(...d.items.map(i => ({ title: i.snippet.title, thumb: i.snippet.thumbnails.medium.url, link: `https://youtube.com/watch?v=${i.id.videoId}`, source: 'youtube' })));
+    }
+    return combined;
 }
 
 function render(items) {
     const grid = document.getElementById('grid');
-    grid.innerHTML = items.length ? "" : "<div style='opacity:0.3'>No results. Check API Vault.</div>";
     items.forEach(v => {
-        const card = document.createElement('div');
-        card.className = 'card';
-        card.innerHTML = `
-            <div class="tag-source">${v.source}</div>
-            ${v.final_score > 0.1 ? `<div class="match-pct">${Math.round(v.final_score * 100)}%</div>` : ''}
-            <img src="${v.thumb}">
-            <div style="padding:15px; font-size:0.9rem; line-height:1.4;"><b>${v.title}</b></div>
-        `;
-        card.onclick = () => { trackIntent(v.title, 5); window.open(v.link); };
-        grid.appendChild(card);
+        const div = document.createElement('div');
+        div.className = 'card';
+        div.innerHTML = `<div class="source-pill">${v.source}</div><img src="${v.thumb}"><div style="padding:20px; font-weight:700;">${v.title}</div>`;
+        div.onclick = () => window.open(v.link);
+        grid.appendChild(div);
     });
 }
 
-function togglePlatform(p) {
-    state.platforms.includes(p) ? state.platforms = state.platforms.filter(x => x !== p) : state.platforms.push(p);
-    document.getElementById(`pill-${p}`).classList.toggle('active');
-}
-
-function saveVault() {
-    state.vault.youtube = document.getElementById('ytPool').value.split('\n').filter(k => k.trim());
-    state.vault.vimeo = document.getElementById('vimeoToken').value.trim();
-    localStorage.setItem('sov_vault', JSON.stringify(state.vault));
-    alert("Vault Synchronized.");
-}
-
-function exportIntelligence() {
-    const blob = new Blob([JSON.stringify(state.brain)], {type: 'application/json'});
-    const a = document.createElement('a');
-    a.href = URL.createObjectURL(blob); a.download = 'sovereign_brain.json'; a.click();
-}
-
-function router() {
-    const hash = window.location.hash.slice(1) || 'home';
-    document.querySelectorAll('.page').forEach(p => p.classList.toggle('active-page', p.id === `page-${hash}`));
-    if(hash === 'vault') {
-        document.getElementById('ytPool').value = state.vault.youtube.join('\n');
-        document.getElementById('vimeoToken').value = state.vault.vimeo;
+function nav(page, el) {
+    document.querySelectorAll('.page').forEach(p => p.classList.remove('active-page'));
+    document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+    document.getElementById(`page-${page}`).classList.add('active-page');
+    el.classList.add('active');
+    
+    if(page === 'settings') {
+        document.getElementById('ytKeys').value = state.vault.youtube.join('\n');
+        document.getElementById('vimToken').value = state.vault.vimeo;
     }
 }
 
-window.onhashchange = router;
-boot();
+function saveAllSettings() {
+    state.vault.youtube = document.getElementById('ytKeys').value.split('\n').filter(k => k.trim());
+    state.vault.vimeo = document.getElementById('vimToken').value.trim();
+    localStorage.setItem('sov_vault', JSON.stringify(state.vault));
+    alert("System Synced Successfully.");
+}
 </script>
 </body>
 </html>
