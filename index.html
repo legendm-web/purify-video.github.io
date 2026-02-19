@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="utf-8"/>
-    <title>DivTube Sovereign v30.0</title>
+    <title>DivTube Sovereign v31.0</title>
     <script type="module" src="https://pyscript.net/releases/2024.1.1/core.js" defer></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&display=swap" rel="stylesheet">
     <style>
@@ -23,34 +23,52 @@
         .view { display: none; padding: 2rem; animation: fadeIn 0.3s ease; }
         .active-view { display: block; }
 
-        /* Strict 16:9 Grid */
+        /* Grid & Thumbnails */
         .video-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 1.5rem; }
         .card { background: var(--card); border-radius: 12px; overflow: hidden; border: 1px solid var(--border); transition: 0.2s; }
-        .card:hover { border-color: var(--primary); transform: translateY(-3px); }
         .thumb-wrap { width: 100%; aspect-ratio: 16/9; overflow: hidden; position: relative; cursor: pointer; background: #000; }
         .thumb-wrap img { width: 100%; height: 100%; object-fit: cover; }
         
-        /* Watch Page Cinema */
-        .watch-layout { display: flex; gap: 2rem; max-width: 1600px; margin: 0 auto; }
-        .player-block { flex: 3; }
-        .rec-block { flex: 1; display: flex; flex-direction: column; gap: 1rem; max-height: 85vh; overflow-y: auto; padding-right: 10px; }
+        /* Watch Page Fixes */
+        .watch-layout { display: flex; gap: 2rem; max-width: 1700px; margin: 0 auto; padding-bottom: 50px; }
+        .player-block { flex: 2.5; min-width: 0; }
+        
+        /* The Responsive 16:9 Theater Fix */
+        .theater-mount-container { 
+            position: relative; 
+            width: 100%; 
+            padding-top: 56.25%; /* 16:9 Aspect Ratio */
+            background: #000; 
+            border-radius: 16px; 
+            overflow: hidden; 
+            border: 1px solid var(--border);
+        }
+        .theater-mount-container iframe { 
+            position: absolute; 
+            top: 0; left: 0; 
+            width: 100%; height: 100%; 
+            border: none; 
+        }
+
+        .rec-block { flex: 1; display: flex; flex-direction: column; gap: 1rem; max-height: 90vh; overflow-y: auto; padding-right: 10px; min-width: 350px; }
         .rec-item { display: flex; gap: 12px; background: var(--card); padding: 10px; border-radius: 10px; cursor: pointer; border: 1px solid transparent; }
         .rec-item:hover { border-color: var(--primary); }
-        .rec-thumb { width: 140px; aspect-ratio: 16/9; border-radius: 6px; object-fit: cover; flex-shrink: 0; }
+        .rec-thumb { width: 160px; aspect-ratio: 16/9; border-radius: 6px; object-fit: cover; flex-shrink: 0; }
+        .rec-meta { display: flex; flex-direction: column; justify-content: flex-start; }
 
-        /* Modal fixes */
+        /* Modal Overlay */
         #modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.92); backdrop-filter: blur(10px); display: none; z-index: 10000; align-items: center; justify-content: center; }
         #modal-content { background: var(--bg); width: 95%; max-width: 1100px; border-radius: 24px; border: 1px solid var(--border); padding: 2.5rem; max-height: 90vh; display: flex; flex-direction: column; }
-        #m-vids-scroll { overflow-y: auto; flex: 1; margin-top: 20px; padding-right: 15px; }
+        #m-vids-scroll { overflow-y: auto; flex: 1; margin-top: 20px; }
         
         #boot-screen { position: fixed; inset: 0; background: #000; z-index: 20000; display: flex; align-items: center; justify-content: center; font-weight: 900; color: var(--primary); font-size: 1.2rem; }
         .btn { padding: 10px 20px; border-radius: 8px; border: none; font-weight: 800; cursor: pointer; }
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
     </style>
 </head>
 <body>
 
-<div id="boot-screen">INITIALIZING_SOVEREIGN_V30...</div>
+<div id="boot-screen">STABILIZING_GEOMETRY...</div>
 
 <aside>
     <div class="logo" onclick="app.nav('/home')">DivTube</div>
@@ -67,8 +85,9 @@
     <section id="view-watch" class="view">
         <div class="watch-layout">
             <div class="player-block">
-                <div id="theater-mount" style="width:100%; aspect-ratio:16/9; background:#000; border-radius:16px; overflow:hidden;"></div>
-                <h2 id="t-title" style="margin-top:20px; font-size:1.8rem; font-weight:900;"></h2>
+                <div class="theater-mount-container" id="theater-mount">
+                    </div>
+                <h2 id="t-title" style="margin-top:25px; font-size:1.8rem; font-weight:900; line-height:1.2;"></h2>
             </div>
             <div class="rec-block" id="rec-sidebar"></div>
         </div>
@@ -118,9 +137,8 @@ window.app.onEngineReady()
 
 <script>
 const app = {
-    // Dynamically detect if we are on GitHub Pages or Local
     basePath: window.location.pathname.startsWith('/DivTube') ? '/DivTube' : '',
-    db: JSON.parse(localStorage.getItem('div_v30')) || { key: "", pool: [], brain: { subs: [] } },
+    db: JSON.parse(localStorage.getItem('div_v31')) || { key: "", pool: [], brain: { subs: [] } },
     engineReady: false,
 
     init() {
@@ -136,7 +154,6 @@ const app = {
     },
 
     nav(path) { 
-        // Ensure path starts with /DivTube if applicable
         const target = this.basePath + path;
         window.history.pushState({}, "", target); 
         this.route(); 
@@ -144,7 +161,6 @@ const app = {
 
     route() {
         const fullPath = window.location.pathname;
-        // Strip the base path to find the logical route
         const route = fullPath.replace(this.basePath, '') || '/home';
         
         document.querySelectorAll('.view').forEach(v => v.classList.remove('active-view'));
@@ -187,7 +203,7 @@ const app = {
                 <div style="padding:15px;">
                     <div style="font-weight:800; font-size:14px; height:42px; overflow:hidden; line-height:1.4;">${v.title}</div>
                     <div style="color:var(--primary); font-size:11px; margin-top:10px; font-weight:900; cursor:pointer;" onclick="app.openChannel('${v.channelId}')">
-                        ${v.channelTitle} • <span style="text-decoration:underline;">INSIGHT</span>
+                        ${v.channelTitle}
                     </div>
                 </div>
             </div>
@@ -230,7 +246,10 @@ const app = {
         document.getElementById('rec-sidebar').innerHTML = recs.map(v => `
             <div class="rec-item" onclick="app.play('${v.id}', '${v.title}')">
                 <img src="${v.thumb}" class="rec-thumb">
-                <div style="font-size:12px; font-weight:800; line-height:1.3;">${v.title}</div>
+                <div class="rec-meta">
+                    <div style="font-size:13px; font-weight:800; line-height:1.2; height:32px; overflow:hidden;">${v.title}</div>
+                    <div style="font-size:11px; color:var(--primary); margin-top:4px;">${v.channelTitle}</div>
+                </div>
             </div>
         `).join('');
     },
@@ -238,13 +257,14 @@ const app = {
     play(id, title) {
         this.closeModal();
         this.nav('/watch');
-        document.getElementById('theater-mount').innerHTML = `<iframe src="https://www.youtube-nocookie.com/embed/${id}?autoplay=1" allowfullscreen></iframe>`;
+        document.getElementById('theater-mount').innerHTML = `<iframe src="https://www.youtube-nocookie.com/embed/${id}?autoplay=1&rel=0&modestbranding=1" allowfullscreen></iframe>`;
         document.getElementById('t-title').innerText = title;
+        window.scrollTo(0,0);
     },
 
     closeModal() { document.getElementById('modal-overlay').style.display = 'none'; this.renderHome(); },
     saveKey() { this.db.key = document.getElementById('ytKey').value; this.save(); location.reload(); },
-    save() { localStorage.setItem('div_v30', JSON.stringify(this.db)); }
+    save() { localStorage.setItem('div_v31', JSON.stringify(this.db)); }
 };
 
 window.app = app;
